@@ -178,7 +178,7 @@ class OSSEventHandler:
         Args:
             bucket_name (str): 要监听的桶名称，默认从环境变量获取
         """
-        self.bucket_name = bucket_name or os.getenv("OSS_BUCKET", "mildoc")
+        self.bucket_name = bucket_name or os.getenv("MINIO_BUCKET", "mildoc")
         
         # 初始化各个组件
         self.minio_client = _get_minio_client()
