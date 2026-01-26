@@ -104,6 +104,11 @@ class OSSEventNotifier:
                     # 接收消息（长轮询，等待最多 10 秒）
                     try:
                         msg = self.mildoc_queue.receive_message_with_str_body(wait_seconds=10)
+
+                        # 获取到消息内容后，清理MQ中的消息，避免重复处理
+                        self.mildoc_queue.delete_message(msg.receipt_handle)
+                        logger.info(f"消息已获取并从MQ中清除，避免重复处理: {msg.receipt_handle}")
+
                     except Exception as e:
                         # 如果没有消息，会抛出异常，继续轮询
                         if "MessageNotExist" in str(e) or "not found" in str(e).lower():
@@ -133,22 +138,12 @@ class OSSEventNotifier:
                                 if handler:
                                     handler(event_data)
                                 
-                                # 删除消息（确认已处理）
-                                self.mildoc_queue.delete_message(msg.receipt_handle)
-                                logger.info("  ✓ 消息已处理并删除")
+                                logger.info("  ✓ 消息已处理")
                             else:
                                 logger.warning(f"⚠ 无法解析事件数据: {message_body}")
-                                # 即使无法解析，也删除消息，避免重复处理
-                                self.mildoc_queue.delete_message(msg.receipt_handle)
                                 
                         except json.JSONDecodeError as e:
                             logger.error(f"✗ 解析消息失败: {e}, 消息内容: {msg.message_body}")
-                            # 删除无法解析的消息，避免阻塞队列
-                            try:
-                                self.mildoc_queue.delete_message(msg.receipt_handle)
-                            except:
-                                logger.error(f"✗ 删除消息失败: {e}")
-                                pass
                         except Exception as e:
                             logger.error(f"✗ 处理消息失败: {e}")
                     
@@ -228,7 +223,10 @@ class OSSEventHandler:
                 self._handle_object_deleted(event_info)
             else:
                 logger.error(f"未处理的事件类型: {event_name}")
-                
+            
+            # 刷新Milvus集合
+            self.milvus_api.flush_collection()
+            logger.info("Milvus集合刷新完成")
         except Exception as e:
             logger.error(f"处理事件时出错: {e}")
   
