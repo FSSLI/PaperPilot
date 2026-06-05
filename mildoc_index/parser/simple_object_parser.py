@@ -13,7 +13,7 @@ from parser.office_parser import OfficeParser
 from parser.pdf_parser import PDFParser
 from parser.markdown_parser import MarkdownParser
 from parser.text_parser import TextParser
-
+from parser.none_parser import NoneParser
 from logger.logging import setup_logging
 
 load_dotenv()
@@ -42,7 +42,8 @@ class SimpleObjectParser:
             OfficeParser(),          # markitdown解析Office文档（Word、Excel、PowerPoint）
             #MinerUParser(),          # MinerU解析器，专门处理PDF，暂不开启
             MarkdownParser(),        # Markdown解析器，
-            TextParser(),            # 纯文本解析器作为最后的备选
+            TextParser(),            # 纯文本解析器
+            NoneParser(),            # 空解析器, 作为最后的备选
         ]
     
     def add_parser(self, parser: DocumentParser):
@@ -195,8 +196,8 @@ class SimpleObjectParser:
             # 选择合适的解析器
             parser = self._get_parser(content_type)
             if not parser:
-                logger.info(f"警告: 未找到适合 {content_type} 的解析器，尝试使用文本解析器")
-                parser = TextParser()
+                logger.info(f"警告: 未找到适合 {content_type} 的解析器，使用空解析器兜底")
+                parser = NoneParser()
             
             # 解析文档内容
             logger.info(f"使用解析器: {parser.__class__.__name__}")
