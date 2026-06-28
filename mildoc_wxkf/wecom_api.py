@@ -70,7 +70,8 @@ class WeComAPI:
             media_id: 媒体文件的 media_id
 
         Returns:
-            (file_bytes, content_type) 元组，失败返回 None
+            (file_bytes, content_type, filename) 三元组，失败返回 None
+            filename 从 Content-Disposition 头中提取，可能为空字符串
         """
         access_token = self.get_kf_access_token()
         if not access_token:
@@ -93,8 +94,18 @@ class WeComAPI:
                 logger.error(f"下载媒体文件失败: {data.get('errmsg', data)}")
                 return None
 
-            logger.info(f"下载媒体文件成功，media_id: {media_id}, 大小: {len(response.content)} 字节")
-            return (response.content, content_type)
+            # 从 Content-Disposition 提取文件名
+            filename = ''
+            content_disp = response.headers.get('Content-Disposition', '')
+            if 'filename=' in content_disp:
+                # 支持 filename="xxx.docx" 和 filename*=UTF-8''xxx.docx
+                import re
+                match = re.search(r"filename\*?=(?:UTF-8''|\"?)([^\";']+)", content_disp, re.IGNORECASE)
+                if match:
+                    filename = requests.utils.unquote(match.group(1))
+
+            logger.info(f"下载媒体文件成功，media_id: {media_id}, 大小: {len(response.content)} 字节, filename: {filename}")
+            return (response.content, content_type, filename)
 
         except Exception as e:
             logger.error(f"下载媒体文件异常: {e}")

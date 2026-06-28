@@ -210,9 +210,13 @@ class KfMessageHandler:
                 # 处理文件消息：下载文件并上传到 MinIO，自动触发索引
                 file_data = msg.get('file', {})
                 media_id = file_data.get('media_id', '')
-                filename = file_data.get('filename', 'unknown')
+                # 企微不同版本字段名可能不同，依次尝试
+                filename = (file_data.get('filename')
+                            or file_data.get('display_name')
+                            or file_data.get('name')
+                            or '')
 
-                logger.info(f"收到客户文件消息: {filename}, media_id: {media_id}")
+                logger.info(f"收到客户文件消息: {filename or '(无文件名)'}, media_id: {media_id}, file_data: {file_data}")
 
                 reply_sent = self._handle_file_upload(external_userid, open_kfid, media_id, filename)
 
@@ -298,7 +302,8 @@ class KfMessageHandler:
         """
         try:
             # 1. 先回复用户正在处理
-            self.send_kf_reply(external_userid, open_kfid, f"📄 收到文件：{filename}\n正在上传到知识库，请稍候...")
+            display_name = filename or '文件'
+            self.send_kf_reply(external_userid, open_kfid, f"📄 收到文件：{display_name}\n正在上传到知识库，请稍候...")
 
             # 2. 从企微下载文件
             result = wecom_api.get_media(media_id)
@@ -307,10 +312,23 @@ class KfMessageHandler:
                 self.send_kf_reply(external_userid, open_kfid, "❌ 文件下载失败，请重新发送。")
                 return False
 
-            file_bytes, content_type = result
+            file_bytes, content_type, cd_filename = result
             file_size = len(file_bytes)
 
-            # 3. 上传到 MinIO
+            # 3. 如果消息中没有文件名，用 Content-Disposition 中的回退
+            if not filename and cd_filename:
+                filename = cd_filename
+                logger.info(f"使用 Content-Disposition 文件名: {filename}")
+
+            # 如果仍然没有文件名，根据内容类型生成默认名
+            if not filename:
+                ext = '.bin'
+                if content_type:
+                    ext = mimetypes.guess_extension(content_type) or '.bin'
+                filename = f"wxkf-upload-{int(time.time())}{ext}"
+                logger.info(f"生成默认文件名: {filename}")
+
+            # 4. 上传到 MinIO
             minio_client = self._get_minio_client()
             bucket = Config.MINIO_BUCKET
 
@@ -334,7 +352,7 @@ class KfMessageHandler:
 
             logger.info(f"文件上传 MinIO 成功: {bucket}/{object_name}, 大小: {file_size} 字节")
 
-            # 4. 回复用户上传成功
+            # 5. 回复用户上传成功
             reply_content = f"✅ 文献「{filename}」已入库！\n系统正在自动解析和索引，稍后即可针对该文献进行提问。"
             return self.send_kf_reply(external_userid, open_kfid, reply_content)
 
