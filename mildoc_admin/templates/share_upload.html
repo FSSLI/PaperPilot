@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+
+{% block title %}共享上传 - Mildoc 文献库{% endblock %}
+
+{% block content %}
+<div class="share-container">
+
+    {% if not authenticated %}
+    <!-- passphrase 验证表单 -->
+    <div class="share-passphrase-box">
+        <div class="share-header">
+            <h2>📚 组内文献共享平台</h2>
+            <p>输入共享口令后可上传文献，上传后全组可见</p>
+        </div>
+        <form method="POST" action="{{ url_for('share_verify') }}" class="passphrase-form">
+            <div class="form-group">
+                <label for="passphrase" class="form-label">共享口令</label>
+                <input type="password" id="passphrase" name="passphrase" class="form-input"
+                       placeholder="请输入共享口令" required autofocus>
+            </div>
+            <button type="submit" class="login-btn">验证口令</button>
+        </form>
+        <p class="share-tip">
+            💡 口令请向管理员索取。上传后文献将自动解析入库，组内成员可直接通过微信客服提问相关问题。
+        </p>
+    </div>
+
+    {% else %}
+    <!-- 已验证，显示上传表单 -->
+    <div class="share-upload-box">
+        <div class="share-header">
+            <h2>📚 组内文献共享平台</h2>
+            <p>上传文献后，全组成员可直接通过微信客服提问相关问题</p>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📄</div>
+            <p class="upload-text">拖拽文件到这里，或点击选择文件</p>
+            <p class="upload-hint">支持 PDF、Word、Excel、PPT，单个文件最大 500MB，可多选</p>
+            <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" style="display:none">
+            <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                选择文件
+            </button>
+        </div>
+
+        <!-- 文件列表 -->
+        <div id="fileList" class="file-list" style="display:none">
+            <h4>待上传文件 (<span id="fileCount">0</span> 个)</h4>
+            <ul id="fileItems"></ul>
+            <div class="upload-actions">
+                <button type="button" class="upload-submit-btn" onclick="uploadFiles()">
+                    开始上传
+                </button>
+                <button type="button" class="upload-clear-btn" onclick="clearFiles()">
+                    清空列表
+                </button>
+            </div>
+        </div>
+
+        <!-- 上传进度 -->
+        <div id="uploadProgress" class="upload-progress" style="display:none">
+            <p class="progress-text">正在上传...</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- 结果 -->
+        <div id="uploadResult" class="upload-result" style="display:none"></div>
+
+        <div class="share-footer">
+            <a href="{{ url_for('share_logout') }}" class="logout-link">退出共享上传</a>
+            <span class="divider">|</span>
+            <a href="{{ url_for('login') }}" class="admin-link">管理员登录</a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+.share-container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.share-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.share-header h2 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 24px;
+}
+
+.share-header p {
+    color: #666;
+    font-size: 14px;
+}
+
+.share-passphrase-box,
+.share-upload-box {
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.passphrase-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #333;
+}
+
+.form-input {
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #2d8c4e;
+}
+
+.login-btn {
+    padding: 14px;
+    background: #2d8c4e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.login-btn:hover {
+    background: #236b3c;
+}
+
+.share-tip {
+    margin-top: 20px;
+    padding: 12px;
+    background: #f5f9ff;
+    border-radius: 8px;
+    color: #666;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.upload-area {
+    border: 2px dashed #ddd;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+.upload-area:hover, .upload-area.dragover {
+    border-color: #2d8c4e;
+    background: #f8fdf9;
+}
+
+.upload-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.upload-text {
+    color: #333;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.upload-hint {
+    color: #999;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+.upload-btn {
+    padding: 10px 24px;
+    background: #2d8c4e;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.upload-btn:hover {
+    background: #236b3c;
+}
+
+.file-list {
+    margin-bottom: 20px;
+}
+
+.file-list h4 {
+    color: #333;
+    margin-bottom: 12px;
+    font-size: 15px;
+}
+
+.file-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.file-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.file-list li .file-name {
+    color: #333;
+    word-break: break-all;
+}
+
+.file-list li .file-size {
+    color: #999;
+    font-size: 12px;
+    white-space: nowrap;
+    margin-left: 12px;
+}
+
+.upload-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.upload-submit-btn {
+    flex: 1;
+    padding: 12px;
+    background: #2d8c4e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.upload-submit-btn:hover {
+    background: #236b3c;
+}
+
+.upload-clear-btn {
+    padding: 12px 20px;
+    background: #f0f0f0;
+    color: #666;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.upload-progress {
+    margin-bottom: 20px;
+}
+
+.progress-text {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.progress-bar {
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #2d8c4e;
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s;
+}
+
+.upload-result {
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.upload-result.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.upload-result.error {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.share-footer {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    font-size: 13px;
+}
+
+.logout-link, .admin-link {
+    color: #666;
+    text-decoration: none;
+}
+
+.logout-link:hover, .admin-link:hover {
+    color: #2d8c4e;
+    text-decoration: underline;
+}
+
+.divider {
+    color: #ddd;
+    margin: 0 10px;
+}
+
+.flash-error {
+    background: #ffebee;
+    color: #c62828;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+</style>
+
+<script>
+let selectedFiles = [];
+
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+const fileItems = document.getElementById('fileItems');
+const fileCount = document.getElementById('fileCount');
+const uploadProgress = document.getElementById('uploadProgress');
+const progressFill = document.getElementById('progressFill');
+const uploadResult = document.getElementById('uploadResult');
+
+// 拖拽上传
+uploadArea.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.classList.add('dragover');
+});
+uploadArea.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+});
+uploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', function() {
+    handleFiles(this.files);
+});
+
+function handleFiles(files) {
+    selectedFiles = Array.from(files);
+    if (selectedFiles.length === 0) return;
+    renderFileList();
+    fileList.style.display = 'block';
+    uploadResult.style.display = 'none';
+}
+
+function renderFileList() {
+    fileItems.innerHTML = '';
+    fileCount.textContent = selectedFiles.length;
+    selectedFiles.forEach(function(file, index) {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <span class="file-name">${file.name}</span>
+            <span>
+                <span class="file-size">${formatSize(file.size)}</span>
+                <button type="button" onclick="removeFile(${index})" style="background:none;border:none;color:#999;cursor:pointer;margin-left:8px;font-size:16px;">×</button>
+            </span>
+        `;
+        fileItems.appendChild(li);
+    });
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    if (selectedFiles.length === 0) {
+        fileList.style.display = 'none';
+    } else {
+        renderFileList();
+    }
+}
+
+function clearFiles() {
+    selectedFiles = [];
+    fileList.style.display = 'none';
+    fileInput.value = '';
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+async function uploadFiles() {
+    if (selectedFiles.length === 0) return;
+
+    uploadProgress.style.display = 'block';
+    uploadResult.style.display = 'none';
+    progressFill.style.width = '0%';
+
+    const formData = new FormData();
+    formData.append('path', 'shared');
+    selectedFiles.forEach(function(file) {
+        formData.append('files', file);
+    });
+
+    try {
+        const response = await fetch('/api/share/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+
+        progressFill.style.width = '100%';
+
+        if (result.success) {
+            uploadResult.className = 'upload-result success';
+            let html = `<strong>✅ 上传成功！</strong><br>成功上传 ${result.uploaded_count} 个文件`;
+            if (result.uploaded_files) {
+                html += '<br><br><strong>已上传：</strong>';
+                result.uploaded_files.forEach(function(f) {
+                    html += `<br>• ${f.filename} (${formatSize(f.size)})`;
+                });
+            }
+            if (result.failed_count > 0) {
+                html += `<br><br><strong>⚠️ ${result.failed_count} 个失败：</strong>`;
+                result.failed_files.forEach(function(f) {
+                    html += `<br>• ${f.filename}: ${f.error}`;
+                });
+            }
+            html += '<br><br>💡 文件将自动解析入库，稍后可通过微信客服提问相关问题。';
+            uploadResult.innerHTML = html;
+            selectedFiles = [];
+            fileList.style.display = 'none';
+        } else {
+            uploadResult.className = 'upload-result error';
+            uploadResult.innerHTML = `<strong>❌ 上传失败</strong><br>${result.error || '未知错误'}`;
+        }
+    } catch (err) {
+        uploadResult.className = 'upload-result error';
+        uploadResult.innerHTML = `<strong>❌ 网络错误</strong><br>请检查网络连接后重试`;
+    }
+
+    uploadProgress.style.display = 'none';
+    uploadResult.style.display = 'block';
+}
+</script>
+{% endblock %}

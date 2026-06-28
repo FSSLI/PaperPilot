@@ -36,6 +36,9 @@ MILVUS_DATABASE = os.getenv("MILVUS_DATABASE")
 MILVUS_COLLECTION = os.getenv("MILVUS_COLLECTION")
 MILVUS_INDEX_NAME = os.getenv("MILVUS_INDEX_NAME")
 
+# 共享上传 passphrase
+SHARE_UPLOAD_PASSPHRASE = os.getenv("SHARE_UPLOAD_PASSPHRASE", "lab2026")
+
 
 
 
@@ -659,6 +662,117 @@ def api_upload_files():
         app.logger.error(f"文件上传处理失败: {str(e)}")
         return jsonify({'error': f'文件上传处理失败: {str(e)}'}), 500
 
+
+
+# ============================================================
+# 共享上传页面（passphrase 验证）
+# ============================================================
+
+@app.route('/share/upload')
+def share_upload_page():
+    """共享上传页面入口"""
+    if 'share_authenticated' in session:
+        return render_template('share_upload.html', authenticated=True)
+    return render_template('share_upload.html', authenticated=False)
+
+@app.route('/share/verify', methods=['POST'])
+def share_verify():
+    """验证 passphrase"""
+    passphrase = request.form.get('passphrase', '')
+    if passphrase == SHARE_UPLOAD_PASSPHRASE:
+        session['share_authenticated'] = True
+        flash('验证通过！', 'success')
+        return redirect(url_for('share_upload_page'))
+    else:
+        flash('口令错误，请重新输入', 'error')
+        return redirect(url_for('share_upload_page'))
+
+@app.route('/share/logout')
+def share_logout():
+    """退出共享上传"""
+    session.pop('share_authenticated', None)
+    flash('已退出共享上传', 'info')
+    return redirect(url_for('share_upload_page'))
+
+@app.route('/api/share/upload', methods=['POST'])
+def api_share_upload():
+    """共享文件上传 API（需要 passphrase 验证）"""
+    if 'share_authenticated' not in session:
+        return jsonify({'error': '请先验证口令'}), 401
+
+    try:
+        upload_path = request.form.get('path', 'shared')
+        if 'files' not in request.files:
+            return jsonify({'error': '没有选择文件'}), 400
+
+        files = request.files.getlist('files')
+        if not files or all(f.filename == '' for f in files):
+            return jsonify({'error': '没有选择有效的文件'}), 400
+
+        uploaded_files = []
+        failed_files = []
+
+        for file in files:
+            if file.filename == '':
+                continue
+
+            try:
+                if upload_path:
+                    object_name = f"{upload_path}/{file.filename}"
+                else:
+                    object_name = f"shared/{file.filename}"
+
+                file.seek(0)
+                file_data = file.read()
+                file_size = len(file_data)
+
+                max_size = 500 * 1024 * 1024
+                if file_size > max_size:
+                    failed_files.append({
+                        'filename': file.filename,
+                        'error': f'文件过大 ({file_size / 1024 / 1024:.2f} MB > 500 MB)'
+                    })
+                    continue
+
+                file.seek(0)
+                minio_client.put_object(
+                    MINIO_BUCKET,
+                    object_name,
+                    file,
+                    file_size,
+                    content_type=file.content_type or 'application/octet-stream'
+                )
+
+                uploaded_files.append({
+                    'filename': file.filename,
+                    'object_name': object_name,
+                    'size': file_size
+                })
+                app.logger.info(f"[共享上传] 文件上传成功: {object_name}")
+
+            except Exception as e:
+                app.logger.error(f"[共享上传] 上传文件 {file.filename} 失败: {str(e)}")
+                failed_files.append({
+                    'filename': file.filename,
+                    'error': str(e)
+                })
+
+        result = {
+            'success': len(uploaded_files) > 0,
+            'uploaded_count': len(uploaded_files),
+            'failed_count': len(failed_files),
+            'uploaded_files': uploaded_files,
+            'failed_files': failed_files,
+            'message': f'成功上传 {len(uploaded_files)} 个文件'
+        }
+        if failed_files:
+            result['message'] += f'，{len(failed_files)} 个文件上传失败'
+
+        return jsonify(result)
+
+    except Exception as e:
+        app.logger.error(f"[共享上传] 文件上传处理失败: {str(e)}")
+        return jsonify({'error': f'文件上传处理失败: {str(e)}'}), 500
 
 
 if __name__ == '__main__':
