@@ -1,10 +1,13 @@
 import logging
 import time
+import io
+import mimetypes
 from typing import Dict
 from wecom_api import wecom_api
 from config import Config
 from cursor_manager import cursor_manager
 from rag_service import get_rag_service
+from minio import Minio
 logger = logging.getLogger(__name__)
 
 
@@ -203,16 +206,24 @@ class KfMessageHandler:
                     if reply_content:
                         reply_sent = self.send_kf_reply(external_userid, open_kfid, reply_content)
             
-            elif msgtype in ['image', 'voice', 'video', 'file']:
-                # 处理多媒体消息，暂不处理，仅作简单回复收到消息
+            elif msgtype == 'file':
+                # 处理文件消息：下载文件并上传到 MinIO，自动触发索引
+                file_data = msg.get('file', {})
+                media_id = file_data.get('media_id', '')
+                filename = file_data.get('filename', 'unknown')
+
+                logger.info(f"收到客户文件消息: {filename}, media_id: {media_id}")
+
+                reply_sent = self._handle_file_upload(external_userid, open_kfid, media_id, filename)
+
+            elif msgtype in ['image', 'voice', 'video']:
+                # 处理其他多媒体消息，暂不处理，仅作简单回复收到消息
                 replies = {
                     'image': '''📷 收到您发送的图片，请简单描述一下图片内容，我能更好地为您服务！''',
-                    
+
                     'voice': '''🎤 收到您的语音消息，感谢您的留言！''',
-                    
+
                     'video': '''🎬 收到您发送的视频，感谢分享！''',
-                    
-                    'file': '''📎 收到您发送的文件，我会尽快查看处理。'''
                 }
                 reply_content = replies.get(msgtype, '收到您的消息，感谢分享！我会尽快为您处理。')
                 if reply_content:
@@ -262,11 +273,76 @@ class KfMessageHandler:
                 reply_sent = self.send_kf_reply(external_userid, open_kfid, reply_content)
             
             return reply_sent
-            
+
         except Exception as e:
             logger.error(f"处理客户消息异常: {e}")
             return False
-    
+
+    def _get_minio_client(self) -> Minio:
+        """获取 MinIO 客户端实例"""
+        client = Minio(
+            endpoint=Config.MINIO_ENDPOINT,
+            access_key=Config.MINIO_ACCESS_KEY,
+            secret_key=Config.MINIO_SECRET_KEY,
+            secure=Config.MINIO_USE_SSL,
+            region=Config.MINIO_REGION,
+        )
+        if Config.MINIO_USE_VIRTUAL_HOST:
+            client.enable_virtual_style_endpoint()
+        return client
+
+    def _handle_file_upload(self, external_userid: str, open_kfid: str, media_id: str, filename: str) -> bool:
+        """
+        处理微信文件消息：从企微下载文件 → 上传到 MinIO → 回复用户
+        MinIO 的 bucket notification 会自动触发 mildoc_index 进行解析和向量化
+        """
+        try:
+            # 1. 先回复用户正在处理
+            self.send_kf_reply(external_userid, open_kfid, f"📄 收到文件：{filename}\n正在上传到知识库，请稍候...")
+
+            # 2. 从企微下载文件
+            result = wecom_api.get_media(media_id)
+            if not result:
+                logger.error(f"下载文件失败: media_id={media_id}")
+                self.send_kf_reply(external_userid, open_kfid, "❌ 文件下载失败，请重新发送。")
+                return False
+
+            file_bytes, content_type = result
+            file_size = len(file_bytes)
+
+            # 3. 上传到 MinIO
+            minio_client = self._get_minio_client()
+            bucket = Config.MINIO_BUCKET
+
+            # 使用 wxkf-uploads/ 前缀区分来源
+            object_name = f"wxkf-uploads/{filename}"
+
+            # 推断 content_type
+            if not content_type or 'octet-stream' in content_type:
+                content_type, _ = mimetypes.guess_type(filename)
+                if not content_type:
+                    content_type = 'application/octet-stream'
+
+            file_stream = io.BytesIO(file_bytes)
+            minio_client.put_object(
+                bucket_name=bucket,
+                object_name=object_name,
+                data=file_stream,
+                length=file_size,
+                content_type=content_type,
+            )
+
+            logger.info(f"文件上传 MinIO 成功: {bucket}/{object_name}, 大小: {file_size} 字节")
+
+            # 4. 回复用户上传成功
+            reply_content = f"✅ 文献「{filename}」已入库！\n系统正在自动解析和索引，稍后即可针对该文献进行提问。"
+            return self.send_kf_reply(external_userid, open_kfid, reply_content)
+
+        except Exception as e:
+            logger.error(f"处理文件上传异常: {e}")
+            self.send_kf_reply(external_userid, open_kfid, f"❌ 文件处理失败：{str(e)[:100]}")
+            return False
+
     def handle_system_event(self, msg: Dict) -> None:
         """处理系统事件"""
         try:

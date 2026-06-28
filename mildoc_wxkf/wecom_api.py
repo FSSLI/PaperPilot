@@ -62,6 +62,44 @@ class WeComAPI:
             logger.error(f"获取客服access_token异常: {e}")
             return None
     
+    def get_media(self, media_id: str) -> Optional[tuple]:
+        """
+        下载媒体文件（图片、语音、视频、文件等）
+
+        Args:
+            media_id: 媒体文件的 media_id
+
+        Returns:
+            (file_bytes, content_type) 元组，失败返回 None
+        """
+        access_token = self.get_kf_access_token()
+        if not access_token:
+            return None
+
+        url = f"{self.base_url}/media/get"
+        params = {
+            'access_token': access_token,
+            'media_id': media_id
+        }
+
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
+
+            # 企微返回错误时是 JSON，正常文件是二进制流
+            content_type = response.headers.get('Content-Type', '')
+            if 'application/json' in content_type or 'text/plain' in content_type:
+                data = response.json()
+                logger.error(f"下载媒体文件失败: {data.get('errmsg', data)}")
+                return None
+
+            logger.info(f"下载媒体文件成功，media_id: {media_id}, 大小: {len(response.content)} 字节")
+            return (response.content, content_type)
+
+        except Exception as e:
+            logger.error(f"下载媒体文件异常: {e}")
+            return None
+
     def sync_kf_messages(self, token: str, open_kfid: str = "", cursor: str = "", limit: int = 1000) -> Optional[Dict]:
         """
         读取客服消息

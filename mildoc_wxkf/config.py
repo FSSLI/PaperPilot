@@ -50,6 +50,15 @@ class Config:
     MILVUS_INDEX_TYPE = os.getenv('MILVUS_INDEX_TYPE')
     MILVUS_VECTOR_DIM = int(os.getenv('MILVUS_VECTOR_DIM'))
 
+    # MinIO 配置（用于接收微信发送的文件并上传到对象存储）
+    MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT')
+    MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY')
+    MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY')
+    MINIO_BUCKET = os.getenv('MINIO_BUCKET')
+    MINIO_REGION = os.getenv('MINIO_REGION')
+    MINIO_USE_VIRTUAL_HOST = os.getenv('MINIO_USE_VIRTUAL_HOST', 'false').lower() == 'true'
+    MINIO_USE_SSL = os.getenv('MINIO_USE_SSL', 'false').lower() == 'true'
+
     # LLM配置
     LLM_MODEL_NAME = os.getenv('LLM_MODEL_NAME')
     LLM_API_KEY = os.getenv('LLM_API_KEY')
