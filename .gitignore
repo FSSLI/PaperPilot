@@ -36,3 +36,7 @@ frp_*/
 
 # Docker volumes
 /docker_data_volume/
+volumes/
+
+# User literature files (not part of the project)
+dataset/

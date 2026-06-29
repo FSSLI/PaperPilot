@@ -1,0 +1,1056 @@
+{
+  "dataset_name": "FFT-References-RAG-Eval",
+  "description": "基于10篇医学图像分割/域适应/频率分析文献构造的RAG评测数据集",
+  "papers": [
+    {
+      "filename": "1-s2.0-S0895611125001934-main.pdf",
+      "title": "FAUDA-Net: Frequency-aware unsupervised domain adaptation network for multimodal medical image segmentation",
+      "authors": "Yan Liu et al.",
+      "venue": "Computerized Medical Imaging and Graphics",
+      "year": 2025,
+      "keywords": [
+        "UDA",
+        "medical image segmentation",
+        "frequency-aware",
+        "contrastive learning"
+      ]
+    },
+    {
+      "filename": "1-s2.0-S0925231223005921-main.pdf",
+      "title": "Unsupervised domain adaptation via style adaptation and boundary enhancement for medical semantic segmentation",
+      "authors": "Yisu Ge et al.",
+      "venue": "Neurocomputing",
+      "year": 2023,
+      "keywords": [
+        "UDA",
+        "medical semantic segmentation",
+        "FFT",
+        "boundary enhancement"
+      ]
+    },
+    {
+      "filename": "2508.01941v2.pdf",
+      "title": "Less is More: AMBER-AFNO - a New Benchmark for Lightweight 3D Medical Image Segmentation",
+      "authors": "Andrea Dosi et al.",
+      "venue": "arXiv",
+      "year": 2025,
+      "keywords": [
+        "3D medical image segmentation",
+        "AFNO",
+        "lightweight transformer"
+      ]
+    },
+    {
+      "filename": "2511.11286v2.pdf",
+      "title": "D-GAP: Improving Out-of-Domain Robustness via Dataset-Agnostic and Gradient-Guided Augmentation in Frequency and Pixel Spaces",
+      "authors": "Ruoqi Wang et al.",
+      "venue": "arXiv",
+      "year": 2026,
+      "keywords": [
+        "OOD robustness",
+        "data augmentation",
+        "frequency domain"
+      ]
+    },
+    {
+      "filename": "2512.04395v2.pdf",
+      "title": "Fourier-Attentive Representation Learning: A Fourier-Guided Framework for Few-Shot Generalization in Vision-Language Models",
+      "authors": "Hieu Dinh Trung Pham et al.",
+      "venue": "arXiv",
+      "year": 2026,
+      "keywords": [
+        "VLM",
+        "few-shot",
+        "Fourier analysis",
+        "feature disentanglement"
+      ]
+    },
+    {
+      "filename": "2603.03726v2.pdf",
+      "title": "QD-PCQA: Quality-Aware Domain Adaptation for Point Cloud Quality Assessment",
+      "authors": "Guohua Zhang et al.",
+      "venue": "arXiv",
+      "year": 2026,
+      "keywords": [
+        "point cloud",
+        "quality assessment",
+        "UDA"
+      ]
+    },
+    {
+      "filename": "2604.17455v1.pdf",
+      "title": "From Adaptation to Generalization: Adaptive Visual Prompting for Medical Image Segmentation",
+      "authors": "Evren Çetinkaya et al.",
+      "venue": "arXiv",
+      "year": 2026,
+      "keywords": [
+        "visual prompting",
+        "medical image segmentation",
+        "Fourier spectrum"
+      ]
+    },
+    {
+      "filename": "NeurIPS-2024-learning-frequency-adapted-vision-foundation-model-for-domain-generalized-semantic-segmentation-Paper-Conference.pdf",
+      "title": "Learning Frequency-Adapted Vision Foundation Model for Domain Generalized Semantic Segmentation",
+      "authors": "Qi Bi et al.",
+      "venue": "NeurIPS 2024",
+      "year": 2024,
+      "keywords": [
+        "DGSS",
+        "vision foundation model",
+        "Haar wavelet",
+        "frequency domain"
+      ]
+    },
+    {
+      "filename": "applsci-16-00840-v2.pdf",
+      "title": "Frequency-Aware Unsupervised Domain Adaptation for Semantic Segmentation of Laparoscopic Images",
+      "authors": "Huiwen Dong, Gaofeng Zhang",
+      "venue": "Applied Sciences (MDPI)",
+      "year": 2026,
+      "keywords": [
+        "UDA",
+        "laparoscopic images",
+        "semantic segmentation",
+        "Fourier domain"
+      ]
+    },
+    {
+      "filename": "jimaging-12-00058-v2.pdf",
+      "title": "SFD-ADNet: Spatial–Frequency Dual-Domain Adaptive Deformation for Point Cloud Data Augmentation",
+      "authors": "Jiacheng Bao et al.",
+      "venue": "Journal of Imaging (MDPI)",
+      "year": 2026,
+      "keywords": [
+        "point cloud",
+        "data augmentation",
+        "spatial-frequency",
+        "Mamba"
+      ]
+    },
+    {
+      "filename": "2103.08454v1.pdf",
+      "title": "MPSCL: Margin Preserving Self-paced Contrastive Learning Towards Domain Adaptation for Medical Image Segmentation",
+      "authors": "Zhizhe Liu et al.",
+      "venue": "IEEE TMI",
+      "year": 2021,
+      "keywords": [
+        "UDA",
+        "medical image segmentation",
+        "contrastive learning",
+        "self-paced"
+      ]
+    },
+    {
+      "filename": "2112.09645v1.pdf",
+      "title": "Local Contrastive Loss with Pseudo-Label Based Self-Training for Semi-Supervised Medical Image Segmentation",
+      "authors": "Krishna Chaitanya et al.",
+      "venue": "MICCAI",
+      "year": 2021,
+      "keywords": [
+        "semi-supervised",
+        "local contrastive loss",
+        "pseudo-label",
+        "medical image segmentation"
+      ]
+    },
+    {
+      "filename": "ASimple Framework for Contrastive Learning of Visual Representations.pdf",
+      "title": "A Simple Framework for Contrastive Learning of Visual Representations (SimCLR)",
+      "authors": "Ting Chen et al.",
+      "venue": "ICML",
+      "year": 2020,
+      "keywords": [
+        "contrastive learning",
+        "self-supervised",
+        "visual representation"
+      ]
+    },
+    {
+      "filename": "CYCLEGAN.pdf",
+      "title": "Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks (CycleGAN)",
+      "authors": "Jun-Yan Zhu et al.",
+      "venue": "ICCV",
+      "year": 2017,
+      "keywords": [
+        "GAN",
+        "image-to-image translation",
+        "cycle consistency"
+      ]
+    },
+    {
+      "filename": "Category Contrast for Unsupervised Domain Adaptation in Visual Task.pdf",
+      "title": "CaCo: Category Contrast for Unsupervised Domain Adaptation in Visual Tasks",
+      "authors": "Jiaxing Huang et al.",
+      "venue": "CVPR",
+      "year": 2022,
+      "keywords": [
+        "UDA",
+        "category contrast",
+        "semantic segmentation"
+      ]
+    },
+    {
+      "filename": "Deep MR to CT Synthesis using Unpaired Data.pdf",
+      "title": "Deep MR to CT Synthesis using Unpaired Data",
+      "authors": "Jelmer M. Wolterink et al.",
+      "venue": "MICCAI",
+      "year": 2017,
+      "keywords": [
+        "GAN",
+        "MR-to-CT",
+        "medical image synthesis",
+        "unpaired"
+      ]
+    },
+    {
+      "filename": "Distill-SODA.pdf",
+      "title": "Distill-SODA: Distilling Self-Supervised Vision Transformer for Source-Free Open-Set Domain Adaptation in Computational Pathology",
+      "authors": "Guillaume Vray et al.",
+      "venue": "MICCAI",
+      "year": 2023,
+      "keywords": [
+        "source-free",
+        "open-set",
+        "ViT",
+        "pathology"
+      ]
+    },
+    {
+      "filename": "Dual-Domain Image Synthesis using Segmentation-Guided GAN.pdf",
+      "title": "Dual-Domain Image Synthesis using Segmentation-Guided GAN",
+      "authors": "Dena Bazazian et al.",
+      "venue": "BMVC",
+      "year": 2022,
+      "keywords": [
+        "GAN",
+        "image synthesis",
+        "segmentation-guided",
+        "StyleGAN"
+      ]
+    },
+    {
+      "filename": "EasySeg_An_Error-Aware_Domain_Adaptation_Framework_for_Remote_Sensing_Imagery_Semantic_Segmentation_via_Interactive_Learning_and_Active_Learning.pdf",
+      "title": "EasySeg: An Error-Aware Domain Adaptation Framework for Remote Sensing Imagery Semantic Segmentation via Interactive Learning and Active Learning",
+      "authors": "Liangzhe Yang et al.",
+      "venue": "IEEE TGRS",
+      "year": 2024,
+      "keywords": [
+        "UDA",
+        "remote sensing",
+        "active learning",
+        "interactive learning"
+      ]
+    },
+    {
+      "filename": "FDA.pdf",
+      "title": "FDA: Fourier Domain Adaptation for Semantic Segmentation",
+      "authors": "Yanchao Yang, Stefano Soatto",
+      "venue": "CVPR",
+      "year": 2020,
+      "keywords": [
+        "UDA",
+        "Fourier domain",
+        "semantic segmentation",
+        "low-frequency swapping"
+      ]
+    },
+    {
+      "filename": "GraTa.pdf",
+      "title": "GraTa: Gradient Alignment Improves Test-Time Adaptation for Medical Image Segmentation",
+      "authors": "Ziyang Chen et al.",
+      "venue": "MICCAI",
+      "year": 2023,
+      "keywords": [
+        "TTA",
+        "gradient alignment",
+        "medical image segmentation"
+      ]
+    },
+    {
+      "filename": "IFA.pdf",
+      "title": "IFA: Cross-Domain Few-Shot Segmentation via Iterative Support-Query Correspondence Mining",
+      "authors": "Jiahao Nie et al.",
+      "venue": "CVPR",
+      "year": 2023,
+      "keywords": [
+        "few-shot",
+        "cross-domain",
+        "segmentation",
+        "correspondence mining"
+      ]
+    },
+    {
+      "filename": "MIC.pdf",
+      "title": "MIC: Masked Image Consistency for Context-Enhanced Domain Adaptation",
+      "authors": "Lukas Hoyer et al.",
+      "venue": "CVPR",
+      "year": 2023,
+      "keywords": [
+        "UDA",
+        "masked consistency",
+        "context-enhanced",
+        "segmentation"
+      ]
+    },
+    {
+      "filename": "Moment-Consistent_Contrastive_CycleGAN_for_Cross-Domain_Pancreatic_Image_Segmentation.pdf",
+      "title": "Moment-Consistent Contrastive CycleGAN for Cross-Domain Pancreatic Image Segmentation",
+      "authors": "Zhongyu Chen et al.",
+      "venue": "IEEE TMI",
+      "year": 2025,
+      "keywords": [
+        "CycleGAN",
+        "contrastive learning",
+        "pancreatic image segmentation",
+        "cross-domain"
+      ]
+    },
+    {
+      "filename": "Momentum Contrast for Unsupervised Visual Representation Learnin.pdf",
+      "title": "Momentum Contrast for Unsupervised Visual Representation Learning (MoCo)",
+      "authors": "Kaiming He et al.",
+      "venue": "CVPR",
+      "year": 2020,
+      "keywords": [
+        "contrastive learning",
+        "momentum encoder",
+        "unsupervised representation"
+      ]
+    },
+    {
+      "filename": "Multi-Source Domain Adaptation for Panoramic Semantic.pdf",
+      "title": "Multi-Source Domain Adaptation for Panoramic Semantic Segmentation",
+      "authors": "Jing Jiang et al.",
+      "venue": "IEEE TIP",
+      "year": 2024,
+      "keywords": [
+        "multi-source DA",
+        "panoramic",
+        "semantic segmentation"
+      ]
+    },
+    {
+      "filename": "Omidi_Unsupervised_Domain_Adaptation_of_MRI_Skull-Stripping_Trained_on_Adult_Data_WACV_2024_paper.pdf",
+      "title": "Unsupervised Domain Adaptation of MRI Skull-stripping Trained on Adult Data to Newborns",
+      "authors": "Abbas Omidi et al.",
+      "venue": "WACV",
+      "year": 2024,
+      "keywords": [
+        "UDA",
+        "MRI",
+        "skull-stripping",
+        "newborn"
+      ]
+    },
+    {
+      "filename": "PATNet.pdf",
+      "title": "PATNet: Pyramid-Anchor-Transformation based Few-Shot Segmentation Network for Cross-Domain Semantic Segmentation",
+      "authors": "Shuo Lei et al.",
+      "venue": "AAAI",
+      "year": 2022,
+      "keywords": [
+        "few-shot",
+        "cross-domain",
+        "semantic segmentation",
+        "pyramid-anchor"
+      ]
+    },
+    {
+      "filename": "Prototypical Contrast Adaptation for Domain.pdf",
+      "title": "ProCA: Prototypical Contrast Adaptation for Domain Adaptive Semantic Segmentation",
+      "authors": "Zhengkai Jiang et al.",
+      "venue": "AAAI",
+      "year": 2022,
+      "keywords": [
+        "UDA",
+        "prototypical contrast",
+        "semantic segmentation"
+      ]
+    },
+    {
+      "filename": "RAM-DSIR.pdf",
+      "title": "RAM-DSIR: Generalizable Medical Image Segmentation via Random Amplitude Mixup and Domain-Specific Image Restoration",
+      "authors": "Ziqi Zhou et al.",
+      "venue": "MICCAI",
+      "year": 2023,
+      "keywords": [
+        "generalizable",
+        "medical image segmentation",
+        "amplitude mixup",
+        "image restoration"
+      ]
+    },
+    {
+      "filename": "Test-Time_Adaptation_with_SaLIP_A_Cascade_of_SAM_and_CLIP_CVPRW_2024_paper.pdf",
+      "title": "SaLIP: Test-Time Adaptation with a Cascade of SAM and CLIP for Zero-shot Medical Image Segmentation",
+      "authors": "Sidra Aleem et al.",
+      "venue": "CVPRW",
+      "year": 2024,
+      "keywords": [
+        "zero-shot",
+        "SAM",
+        "CLIP",
+        "medical image segmentation"
+      ]
+    },
+    {
+      "filename": "UDA-MIMA.pdf",
+      "title": "UDA-MIMA: Unsupervised Domain Adaptation for Brain Structure Segmentation via Mutual Information Maximization Alignment",
+      "authors": "Qian Hu et al.",
+      "venue": "Biomedical Signal Processing and Control",
+      "year": 2024,
+      "keywords": [
+        "UDA",
+        "brain structure segmentation",
+        "mutual information",
+        "MRI"
+      ]
+    },
+    {
+      "filename": "Unsupervised_Domain_Adaptation_for_VHR_Urban_Scene_Segmentation_via_Prompted_Foundation_Model-Based_Hybrid_Training_Joint-Optimized_Network (1).pdf",
+      "title": "PFM-JONet: Unsupervised Domain Adaptation for VHR Urban Scene Segmentation via Prompted Foundation Model-Based Hybrid Training",
+      "authors": "Shuchang Lyu et al.",
+      "venue": "IEEE TGRS",
+      "year": 2025,
+      "keywords": [
+        "UDA",
+        "remote sensing",
+        "foundation model",
+        "VHR urban scene"
+      ]
+    },
+    {
+      "filename": "VPTTA.pdf",
+      "title": "VPTTA: Each Test Image Deserves A Specific Prompt - Continual Test-Time Adaptation for 2D Medical Image Segmentation",
+      "authors": "Ziyang Chen et al.",
+      "venue": "MICCAI",
+      "year": 2023,
+      "keywords": [
+        "TTA",
+        "prompt learning",
+        "continual learning",
+        "medical image segmentation"
+      ]
+    },
+    {
+      "filename": "Wang_CDAC_Cross-domain_Attention_Consistency_in_Transformer_for_Domain_Adaptive_Semantic_ICCV_2023_paper.pdf",
+      "title": "CDAC: Cross-domain Attention Consistency in Transformer for Domain Adaptive Semantic Segmentation",
+      "authors": "Kaihong Wang et al.",
+      "venue": "ICCV",
+      "year": 2023,
+      "keywords": [
+        "UDA",
+        "transformer",
+        "attention consistency",
+        "semantic segmentation"
+      ]
+    },
+    {
+      "filename": "Zhang_MAPSeg_Unified_Unsupervised_Domain_Adaptation_for_Heterogeneous_Medical_Image_Segmentation_CVPR_2024_paper.pdf",
+      "title": "MAPSeg: Unified Unsupervised Domain Adaptation for Heterogeneous Medical Image Segmentation Based on 3D Masked Autoencoding and Pseudo-Labeling",
+      "authors": "Xuzhe Zhang et al.",
+      "venue": "CVPR",
+      "year": 2024,
+      "keywords": [
+        "UDA",
+        "medical image segmentation",
+        "masked autoencoding",
+        "pseudo-labeling"
+      ]
+    },
+    {
+      "filename": "汇报（2）Patch-based Output Space Adversarial Learning for Joint Optic Disc and Cup Segmentation_MICCAI_2018_paper.pdf",
+      "title": "pOSAL: Patch-based Output Space Adversarial Learning for Joint Optic Disc and Cup Segmentation",
+      "authors": "Shujun Wang et al.",
+      "venue": "MICCAI",
+      "year": 2018,
+      "keywords": [
+        "UDA",
+        "adversarial learning",
+        "optic disc/cup segmentation",
+        "patch-based"
+      ]
+    }
+  ],
+  "qa_pairs": [
+    {
+      "id": "q001",
+      "question": "FAUDA-Net 这篇论文提出了什么方法来解决医学图像分割中的域适应问题？",
+      "ground_truth": "FAUDA-Net 提出了一种频率感知无监督域适应网络，通过双域分布扰动来鼓励域不变表示，同时利用相位和幅度分量的频率约束来引导跨域适应。此外，它还引入了频率感知对比学习机制，通过通道自注意力矩阵对齐源域和目标域特征。",
+      "source_doc": "1-s2.0-S0895611125001934-main.pdf",
+      "question_type": "事实性"
+    },
+    {
+      "id": "q002",
+      "question": "FAUDA-Net 中频率感知对比学习机制的作用是什么？",
+      "ground_truth": "频率感知对比学习机制通过通道自注意力矩阵对齐源域和目标域特征，使得共享的像素级解码器能够实现稳健的分割性能。",
+      "source_doc": "1-s2.0-S0895611125001934-main.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q003",
+      "question": "Ge 等人提出的方法如何利用 FFT 进行医学语义分割的域适应？",
+      "ground_truth": "Ge 等人提出了风格适应模块和边界增强模块。风格适应模块通过快速傅里叶变换（FFT）和低通滤波从深度特征中提取风格信息，以辅助对齐域分布。边界增强模块利用特征的相位谱获取边界信息，通过聚合边界信息来提升分割能力。",
+      "source_doc": "1-s2.0-S0925231223005921-main.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q004",
+      "question": "AMBER-AFNO 这篇论文的主要创新点是什么？",
+      "ground_truth": "AMBER-AFNO 的主要创新点是使用自适应傅里叶神经算子（AFNO）替代了传统的多头自注意力机制。与空间成对交互不同，AFNO 在频率域进行全局 token 混合，避免了 O(N^2) 的注意力权重计算，实现了准线性计算复杂度和线性内存扩展。",
+      "source_doc": "2508.01941v2.pdf",
+      "question_type": "事实性"
+    },
+    {
+      "id": "q005",
+      "question": "AMBER-AFNO 在哪些数据集上进行了评估？",
+      "ground_truth": "AMBER-AFNO 在三个公开数据集上进行了评估：ACDC、Synapse 和 BraTS。",
+      "source_doc": "2508.01941v2.pdf",
+      "question_type": "事实性"
+    },
+    {
+      "id": "q006",
+      "question": "D-GAP 方法如何解决神经网络在域偏移中的学习偏差问题？",
+      "ground_truth": "D-GAP 是一种数据集无关且梯度引导的增强方法，针对频率空间中的幅度谱和像素值。它从任务梯度计算频率空间中的敏感度图，反映深度模型对不同频率分量的响应强度，然后使用这些图来自适应地在源样本和目标样本之间插值幅度。同时，像素空间混合过程恢复精细的空间细节。",
+      "source_doc": "2511.11286v2.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q007",
+      "question": "D-GAP 在真实世界数据集上的 OOD 性能提升了多少？",
+      "ground_truth": "D-GAP 在真实世界数据集上平均提升了 +5.3% 的 OOD 性能，在基准数据集上提升了 +1.9%。",
+      "source_doc": "2511.11286v2.pdf",
+      "question_type": "数值型"
+    },
+    {
+      "id": "q008",
+      "question": "FARL 框架如何利用傅里叶分析来解耦视觉表示？",
+      "ground_truth": "FARL（Fourier-Attentive Representation Learning）框架使用双交叉注意力机制，其中可学习的表示 token 分别查询图像的结构特征（来自相位谱）和风格特征（来自幅度谱）。这个过程产生丰富的解耦 token，然后注入到 VLM 编码器中以引导适应。",
+      "source_doc": "2512.04395v2.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q009",
+      "question": "FARL 中的不对称注入策略有什么作用？",
+      "ground_truth": "FARL 中的不对称注入策略迫使模型学习更鲁棒的视觉-语言对齐，从而增强少样本泛化能力。",
+      "source_doc": "2512.04395v2.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q010",
+      "question": "QD-PCQA 方法针对什么问题提出了什么解决方案？",
+      "ground_truth": "QD-PCQA 针对无参考点云质量评估（NR-PCQA）中的泛化问题，提出了两个主要组件：一是秩加权条件对齐（RCA）策略，在对齐特征时自适应地强调错误排序的样本；二是质量引导特征增强（QFA）策略，包括质量引导风格混合、多层扩展和双域增强模块。",
+      "source_doc": "2603.03726v2.pdf",
+      "question_type": "事实性"
+    },
+    {
+      "id": "q011",
+      "question": "QD-PCQA 中的 RCA 策略为什么强调错误排序的样本？",
+      "ground_truth": "RCA 策略强调错误排序的样本是为了强化感知质量排序意识，因为现有的 UDA 方法往往忽视了感知质量对质量排序的敏感性。",
+      "source_doc": "2603.03726v2.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q012",
+      "question": "APEX 框架如何提取输入特定的提示？",
+      "ground_truth": "APEX 框架通过从傅里叶频谱提取的域特征来查询可学习的提示记忆库，从而检索输入特定的提示。为了学习鲁棒且可区分的域特征，APEX 引入了低频特征对比（LFC）学习框架，将同一域的表示聚类，同时分离不同域的表示。",
+      "source_doc": "2604.17455v1.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q013",
+      "question": "APEX 中的 LFC 学习框架是什么？",
+      "ground_truth": "LFC（Low-Frequency Feature Contrastive）是 APEX 框架中引入的低频特征对比学习框架，用于聚合同一域的表示并分离不同域的表示，从而学习鲁棒且可区分的域特征。",
+      "source_doc": "2604.17455v1.pdf",
+      "question_type": "概念性"
+    },
+    {
+      "id": "q014",
+      "question": "FADA（NeurIPS 2024）如何利用频率域解耦内容和风格信息？",
+      "ground_truth": "FADA 使用 Haar 小波变换后的频率空间来解耦风格信息和域不变内容。内容信息保留在低频分量中，而风格信息保留在高频分量中。FADA 包含低频分支和高频分支：前者稳定场景内容，后者学习场景风格并消除其对域泛化语义分割的影响。",
+      "source_doc": "NeurIPS-2024-learning-frequency-adapted-vision-foundation-model-for-domain-generalized-semantic-segmentation-Paper-Conference.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q015",
+      "question": "FADA 的低频分支和高频分支分别负责什么？",
+      "ground_truth": "FADA 的低频分支负责稳定场景内容，高频分支负责学习场景风格并消除其对域泛化语义分割（DGSS）的影响。",
+      "source_doc": "NeurIPS-2024-learning-frequency-adapted-vision-foundation-model-for-domain-generalized-semantic-segmentation-Paper-Conference.pdf",
+      "question_type": "概念性"
+    },
+    {
+      "id": "q016",
+      "question": "腹腔镜图像语义分割的域适应方法中，Radial Frequency Masking 模块的作用是什么？",
+      "ground_truth": "Radial Frequency Masking 模块选择性掩蔽真实图像的频率分量，通过 Mean Teacher 框架强制高频和低频表示之间的一致性，以减少合成图像和真实腹腔镜图像之间的域差距。",
+      "source_doc": "applsci-16-00840-v2.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q017",
+      "question": "腹腔镜图像域适应中的 Fourier Domain Adaptation-Blend 是什么？",
+      "ground_truth": "Fourier Domain Adaptation-Blend 是一种基于低频混合的风格迁移策略，用于在腹腔镜图像语义分割中减少合成数据和真实数据之间的域差距。",
+      "source_doc": "applsci-16-00840-v2.pdf",
+      "question_type": "概念性"
+    },
+    {
+      "id": "q018",
+      "question": "SFD-ADNet 如何在空间域和频率域实现点云数据增强？",
+      "ground_truth": "SFD-ADNet 在空间域使用分层序列编码器和双向 Mamba 变形预测器来捕获长程几何依赖和局部结构变化；在频率域使用基于自适应 Chebyshev 多项式的多尺度双通道机制，将低频结构分量与高频细节分离，从而抑制噪声并保留全局结构。",
+      "source_doc": "jimaging-12-00058-v2.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q019",
+      "question": "SFD-ADNet 中的 Chebyshev 多项式有什么作用？",
+      "ground_truth": "SFD-ADNet 中的自适应 Chebyshev 多项式用于在频率域构建多尺度双通道机制，将低频结构分量与高频细节分离，使模型能够自适应地控制变形过程。",
+      "source_doc": "jimaging-12-00058-v2.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q020",
+      "question": "FAUDA-Net 和 Ge 等人的方法在利用频率信息方面有什么区别？",
+      "ground_truth": "FAUDA-Net 使用频率感知对比学习，通过通道自注意力矩阵对齐源域和目标域特征，侧重于利用相位和幅度分量引导跨域适应。而 Ge 等人的方法使用 FFT 和低通滤波提取风格信息来对齐域分布，同时使用相位谱获取边界信息来提升分割能力。前者更侧重于对比学习机制，后者更侧重于风格对齐和边界增强。",
+      "source_doc": [
+        "1-s2.0-S0895611125001934-main.pdf",
+        "1-s2.0-S0925231223005921-main.pdf"
+      ],
+      "question_type": "比较性"
+    },
+    {
+      "id": "q021",
+      "question": "FADA 和 FAUDA-Net 都利用了频率域信息，它们的方法有什么不同？",
+      "ground_truth": "FADA 使用 Haar 小波变换在频率域解耦内容和风格信息，通过低频分支稳定场景内容、高频分支学习场景风格。FAUDA-Net 则使用频率约束（相位和幅度分量）和频率感知对比学习来对齐源域和目标域特征。FADA 更侧重于利用小波变换进行内容和风格的分离，而 FAUDA-Net 更侧重于利用频率信息进行域对齐。",
+      "source_doc": [
+        "NeurIPS-2024-learning-frequency-adapted-vision-foundation-model-for-domain-generalized-semantic-segmentation-Paper-Conference.pdf",
+        "1-s2.0-S0895611125001934-main.pdf"
+      ],
+      "question_type": "比较性"
+    },
+    {
+      "id": "q022",
+      "question": "D-GAP 和 AMBER-AFNO 都涉及频率域操作，它们的应用场景有什么不同？",
+      "ground_truth": "D-GAP 应用于图像分类等计算机视觉任务的域外鲁棒性增强，通过在频率空间和像素空间进行数据增强来提升 OOD 性能。AMBER-AFNO 则应用于 3D 医学图像分割，使用自适应傅里叶神经算子替代注意力机制来降低计算复杂度，实现轻量化的 3D 分割。两者虽然都利用频率域，但应用场景完全不同。",
+      "source_doc": [
+        "2511.11286v2.pdf",
+        "2508.01941v2.pdf"
+      ],
+      "question_type": "比较性"
+    },
+    {
+      "id": "q023",
+      "question": "哪些方法使用了傅里叶变换来对齐域分布？",
+      "ground_truth": "使用傅里叶变换对齐域分布的方法包括：Ge 等人的风格适应模块（FFT + 低通滤波）、腹腔镜图像域适应中的 Fourier Domain Adaptation-Blend（基于低频混合的风格迁移）、以及 FAUDA-Net 的频率约束（利用相位和幅度分量）。",
+      "source_doc": [
+        "1-s2.0-S0925231223005921-main.pdf",
+        "applsci-16-00840-v2.pdf",
+        "1-s2.0-S0895611125001934-main.pdf"
+      ],
+      "question_type": "综合性"
+    },
+    {
+      "id": "q024",
+      "question": "哪些论文涉及点云数据的处理？",
+      "ground_truth": "涉及点云数据处理的论文有：QD-PCQA（点云质量评估的无监督域适应）和 SFD-ADNet（空间-频率双域自适应点云数据增强）。",
+      "source_doc": [
+        "2603.03726v2.pdf",
+        "jimaging-12-00058-v2.pdf"
+      ],
+      "question_type": "综合性"
+    },
+    {
+      "id": "q025",
+      "question": "在医学图像分割领域，哪些方法利用了频率域信息？",
+      "ground_truth": "医学图像分割领域利用频率域信息的方法包括：FAUDA-Net（频率感知对比学习）、Ge 等人的方法（FFT 风格适应 + 相位谱边界增强）、APEX（傅里叶频谱提取域特征）、腹腔镜图像域适应（径向频率掩码 + Fourier Domain Adaptation-Blend）、以及 FADA（Haar 小波变换解耦内容和风格）。",
+      "source_doc": [
+        "1-s2.0-S0895611125001934-main.pdf",
+        "1-s2.0-S0925231223005921-main.pdf",
+        "2604.17455v1.pdf",
+        "applsci-16-00840-v2.pdf",
+        "NeurIPS-2024-learning-frequency-adapted-vision-foundation-model-for-domain-generalized-semantic-segmentation-Paper-Conference.pdf"
+      ],
+      "question_type": "综合性"
+    },
+    {
+      "id": "q026",
+      "question": "FARL 和 APEX 都使用了提示学习，它们的区别是什么？",
+      "ground_truth": "FARL 是用于视觉-语言模型（VLM）少样本泛化的框架，通过傅里叶分析解耦结构和风格特征，使用双交叉注意力机制生成解耦的表示 token。APEX 是用于医学图像分割的自适应视觉提示框架，通过傅里叶频谱提取域特征来查询可学习的提示记忆库。FARL 面向 VLM 的少样本学习，APEX 面向医学图像分割的域泛化。",
+      "source_doc": [
+        "2512.04395v2.pdf",
+        "2604.17455v1.pdf"
+      ],
+      "question_type": "比较性"
+    },
+    {
+      "id": "q027",
+      "question": "AMBER-AFNO 中的 AFNO 与传统的多头自注意力相比有什么优势？",
+      "ground_truth": "AFNO（Adaptive Fourier Neural Operator）在频率域进行全局 token 混合，避免了传统多头自注意力的 O(N^2) 注意力权重计算，实现了准线性计算复杂度和线性内存扩展，同时保留了全局上下文建模能力。",
+      "source_doc": "2508.01941v2.pdf",
+      "question_type": "概念性"
+    },
+    {
+      "id": "q028",
+      "question": "SFD-ADNet 为什么使用双向 Mamba 而不是传统 Transformer？",
+      "ground_truth": "SFD-ADNet 使用双向 Mamba 变形预测器来捕获长程几何依赖和局部结构变化，实现自适应的位置感知变形控制。Mamba 相比传统 Transformer 在处理长序列时具有线性复杂度优势，更适合点云这种无序且可能很长的数据结构。",
+      "source_doc": "jimaging-12-00058-v2.pdf",
+      "question_type": "概念性"
+    },
+    {
+      "id": "q029",
+      "question": "在域适应方法中，低频和高频分量通常分别代表什么信息？",
+      "ground_truth": "在域适应和图像处理中，低频分量通常代表场景内容和结构信息（域不变的），而高频分量通常代表风格、纹理和细节信息（域特定的）。例如，FADA 中低频分支稳定场景内容，高频分支学习场景风格；SFD-ADNet 中低频代表结构分量，高频代表细节。",
+      "source_doc": [
+        "NeurIPS-2024-learning-frequency-adapted-vision-foundation-model-for-domain-generalized-semantic-segmentation-Paper-Conference.pdf",
+        "jimaging-12-00058-v2.pdf"
+      ],
+      "question_type": "概念性"
+    },
+    {
+      "id": "q030",
+      "question": "腹腔镜图像语义分割的域适应方法为什么需要频率感知？",
+      "ground_truth": "腹腔镜图像语义分割需要频率感知是因为合成图像和真实腹腔镜图像之间存在显著的域差距（如光照、纹理、颜色等）。频率感知方法可以通过径向频率掩码选择性地掩蔽真实图像的频率分量，并通过 Mean Teacher 框架强制高频和低频表示之间的一致性，从而减少域差距，无需目标域的人工标注。",
+      "source_doc": "applsci-16-00840-v2.pdf",
+      "question_type": "概念性"
+    },
+    {
+      "id": "q031",
+      "question": "MPSCL 方法如何解决医学图像分割中对比学习的类别对齐问题？",
+      "ground_truth": "MPSCL（Margin Preserving Self-paced Contrastive Learning）利用域自适应类别原型来构建正负样本对，并通过渐进式细化的语义原型指导，提出了一种保持边界的对比损失，以增强嵌入表示空间的判别性。同时，通过自步方式生成更多有信息的伪标签，增强对比学习的监督。",
+      "source_doc": "2103.08454v1.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q032",
+      "question": "局部对比损失在半监督医学图像分割中的作用是什么？",
+      "ground_truth": "局部对比损失通过利用伪标签获得的语义标签信息，学习对分割有用的像素级特征。与基于随机增强和空间邻近性定义相似区域的方法不同，该方法基于语义标签定义局部区域的相似性和差异性，从而提升分割精度。",
+      "source_doc": "2112.09645v1.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q033",
+      "question": "SimCLR 框架中哪些因素对对比学习的效果影响最大？",
+      "ground_truth": "SimCLR 发现三个关键因素：(1) 数据增强的组合在定义有效的预测任务中起关键作用；(2) 在表示和对比损失之间引入可学习的非线性变换能显著提高学习表示的质量；(3) 对比学习受益于更大的 batch size 和更多的训练步骤。",
+      "source_doc": "ASimple Framework for Contrastive Learning of Visual Representations.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q034",
+      "question": "CycleGAN 如何实现无配对图像到图像的翻译？",
+      "ground_truth": "CycleGAN 通过循环一致性损失（cycle consistency loss）实现无配对图像翻译。它学习两个映射函数：G（从源域到目标域）和 F（从目标域到源域），并通过循环一致性损失确保 F(G(x)) 约等于 x，从而在无配对数据的情况下实现图像翻译。",
+      "source_doc": "CYCLEGAN.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q035",
+      "question": "CaCo 方法如何利用类别对比进行无监督域适应？",
+      "ground_truth": "CaCo（Category Contrast）将实例对比学习视为字典查找操作，构建了一个包含源域和目标域样本的语义感知字典，其中每个目标样本根据源样本的类别先验分配伪类别标签。通过类别对比学习（目标查询与类别级字典之间），实现类别判别性且域不变的特征表示。",
+      "source_doc": "Category Contrast for Unsupervised Domain Adaptation in Visual Task.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q036",
+      "question": "为什么 Deep MR to CT Synthesis 方法使用无配对数据训练？",
+      "ground_truth": "因为配对的 MR 和 CT 图像可能存在不对齐问题，这会导致合成 CT 图像时出现错误。使用无配对数据和循环一致性损失训练的 GAN 可以避免这个问题，生成更准确的合成 CT 图像。",
+      "source_doc": "Deep MR to CT Synthesis using Unpaired Data.pdf",
+      "question_type": "概念性"
+    },
+    {
+      "id": "q037",
+      "question": "Distill-SODA 如何应对计算病理学中的开放集域适应问题？",
+      "ground_truth": "Distill-SODA 通过从自监督 Vision Transformer 中提取知识，引入基于风格的对抗数据增强作为硬正例，对 ViT 进行自训练。然后将语义相似的目标图像聚类，利用源模型提供弱监督，从而同时处理未知类别的语义偏移和协变量偏移（颜色外观变化）。",
+      "source_doc": "Distill-SODA.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q038",
+      "question": "Dual-Domain Image Synthesis 方法如何合成具有双域特征的图像？",
+      "ground_truth": "该方法结合少样本跨域 StyleGAN 和潜在优化器，在语义掩码区域内属于一个域，在图像其余部分属于另一个域，并通过分割引导的感知损失比较像素级和激活级差异，实现两个不同域特征的平滑融合。",
+      "source_doc": "Dual-Domain Image Synthesis using Segmentation-Guided GAN.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q039",
+      "question": "EasySeg 框架中的 SFAL 策略是什么？",
+      "ground_truth": "SFAL（See-First-Ask-Later）是一种点级标注策略，结合交互学习和主动学习，允许对明显错误和信息丰富的像素进行高效标注。基于该策略，EasySeg 引入了交互式语义分割网络（ISS-Net），可自动进行语义分割和交互式细化。",
+      "source_doc": "EasySeg_An_Error-Aware_Domain_Adaptation_Framework_for_Remote_Sensing_Imagery_Semantic_Segmentation_via_Interactive_Learning_and_Active_Learning.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q040",
+      "question": "FDA（Fourier Domain Adaptation）方法如何进行域适应？",
+      "ground_truth": "FDA 通过交换源域和目标域图像的低频频谱来减少分布差异。该方法不需要任何训练，只需简单的傅里叶变换及其逆变换即可实现域对齐，当集成到标准语义分割模型中时能达到 state-of-the-art 性能。",
+      "source_doc": "FDA.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q041",
+      "question": "GraTa 方法如何改进医学图像分割的测试时适应？",
+      "ground_truth": "GraTa（Gradient alignment-based Test-time adaptation）通过引入辅助梯度来优化梯度方向和学习率。与传统 TTA 方法主要优化自监督目标的伪梯度不同，GraTa 改善了优化过程中的梯度方向和步长，从而提升测试时适应效果。",
+      "source_doc": "GraTa.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q042",
+      "question": "IFA 方法如何解决跨域少样本分割中的过拟合问题？",
+      "ground_truth": "IFA（Iterative Few-shot Adaptor）首先设计了双向少样本预测（BFP），以双向方式建立支持-查询对应关系，生成增强监督以减少过拟合风险。然后将 BFP 扩展为迭代框架，递归地捕获支持-查询对应关系，最大化利用监督信号。",
+      "source_doc": "IFA.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q043",
+      "question": "MIC 模块如何增强域适应中的上下文关系学习？",
+      "ground_truth": "MIC（Masked Image Consistency）通过强制掩码目标图像的预测与基于完整图像的伪标签之间的一致性来增强上下文关系学习。随机遮挡目标图像的某些区域，网络必须从上下文中推断被遮挡区域的预测，从而学习目标域的空间上下文关系。",
+      "source_doc": "MIC.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q044",
+      "question": "MC-CCycleGAN 如何利用对比学习改进跨域胰腺图像分割？",
+      "ground_truth": "MC-CCycleGAN 在 CycleGAN 的生成器编码器中引入对比损失，约束从真实图像和风格迁移图像中提取的特征，在风格迁移过程中充分提取输入图像的结构特征，同时消除冗余的风格特征。通过多阶中心矩一致性进一步增强跨域分割性能。",
+      "source_doc": "Moment-Consistent_Contrastive_CycleGAN_for_Cross-Domain_Pancreatic_Image_Segmentation.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q045",
+      "question": "MoCo 如何解决对比学习中动态字典的一致性问题？",
+      "ground_truth": "MoCo 使用队列和动量编码器构建动态字典。队列保持最近批次的样本作为负样本，而动量编码器通过缓慢更新的方式保证字典的一致性，使得大规模动态字典的对比学习成为可能。",
+      "source_doc": "Momentum Contrast for Unsupervised Visual Representation Learnin.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q046",
+      "question": "MSDA4PASS 任务中需要解决哪两个关键问题？",
+      "ground_truth": "MSDA4PASS（Multi-source Domain Adaptation for Panoramic Semantic Segmentation）需要解决两个关键问题：(1) 针孔图像和全景图像之间的畸变差距——全景图像存在全局和局部畸变；(2) 源域和目标域之间的纹理差距——不同域的场景和风格差异。",
+      "source_doc": "Multi-Source Domain Adaptation for Panoramic Semantic.pdf",
+      "question_type": "事实性"
+    },
+    {
+      "id": "q047",
+      "question": "为什么需要将成人 MRI 颅骨剥离模型适应到新生儿数据？",
+      "ground_truth": "因为新生儿脑部 MRI 数据没有公开可用的带标注分割掩码数据集，且手动分割耗时耗力。此外，成人与新生儿脑部 MRI 之间存在巨大的域偏移，在成人数据上训练的模型无法直接有效应用于新生儿数据。",
+      "source_doc": "Omidi_Unsupervised_Domain_Adaptation_of_MRI_Skull-Stripping_Trained_on_Adult_Data_WACV_2024_paper.pdf",
+      "question_type": "概念性"
+    },
+    {
+      "id": "q048",
+      "question": "PATNet 中的金字塔锚点变换（Pyramid-Anchor-Transformation）的作用是什么？",
+      "ground_truth": "PATNet 通过金字塔锚点变换将域特定特征转换为域无关特征，用于下游分割任务。这种变换机制帮助网络从不同域中提取可迁移的表示，从而解决跨域少样本分割中的域偏移问题。",
+      "source_doc": "PATNet.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q049",
+      "question": "ProCA 如何利用原型对比进行域适应语义分割？",
+      "ground_truth": "ProCA（Prototypical Contrast Adaptation）将类间信息纳入类别原型中，采用以类别为中心的分布对齐策略。通过将同一类别的原型视为正例，其他类别原型视为负例，实现类别中心分布对齐，从而保持目标域上表示的可判别性。",
+      "source_doc": "Prototypical Contrast Adaptation for Domain.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q050",
+      "question": "RAM-DSIR 中的随机幅度混合（RAM）模块如何增强模型的泛化能力？",
+      "ground_truth": "RAM 模块通过混合不同域图像的低级频率信息来合成新图像，增加训练数据的多样性。结合域特定图像恢复（DSIR）模块和语义一致性损失，引导模型抵抗域偏移，提升在未见域上的泛化能力。",
+      "source_doc": "RAM-DSIR.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q051",
+      "question": "SaLIP 如何结合 SAM 和 CLIP 进行零样本医学图像分割？",
+      "ground_truth": "SaLIP 首先使用 SAM 进行基于部件的分割，然后利用 CLIP 从 SAM 生成的掩码池中检索与感兴趣区域（ROI）对应的掩码，最后使用检索到的 ROI 作为提示来驱动 SAM 分割特定器官。该方法无需训练/微调，也不需要领域专家知识或标注数据。",
+      "source_doc": "Test-Time_Adaptation_with_SaLIP_A_Cascade_of_SAM_and_CLIP_CVPRW_2024_paper.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q052",
+      "question": "UDA-MIMA 如何利用互信息最大化进行脑结构分割的域适应？",
+      "ground_truth": "UDA-MIMA 设计了基于自训练的网络架构，通过蒸馏学习将训练有素的教师网络中的关键知识转移到未训练的学生网络中，同时利用互信息最大化对齐源域和目标域的特征分布，实现脑结构分割的跨域迁移。",
+      "source_doc": "UDA-MIMA.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q053",
+      "question": "PFM-JONet 如何利用基础模型解决遥感图像的域适应问题？",
+      "ground_truth": "PFM-JONet（Prompted Foundation Model-based Hybrid Training Joint-Optimized Network）利用提示基础模型进行混合训练，通过联合优化网络解决高分辨率城市场景分割中的特征表示不一致性和源域模式表示偏差问题，提升遥感图像域适应性能。",
+      "source_doc": "Unsupervised_Domain_Adaptation_for_VHR_Urban_Scene_Segmentation_via_Prompted_Foundation_Model-Based_Hybrid_Training_Joint-Optimized_Network (1).pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q054",
+      "question": "VPTTA 如何避免测试时适应中的错误累积和灾难性遗忘？",
+      "ground_truth": "VPTTA（Visual Prompt-based Test-Time Adaptation）通过冻结模型参数，为每个测试图像训练一个特定的提示（prompt）来实现适应，而不是微调模型权重。这种方式避免了传统 TTA 方法中的错误累积和灾难性遗忘问题。",
+      "source_doc": "VPTTA.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q055",
+      "question": "CDAC 如何利用注意力一致性进行跨域语义分割？",
+      "ground_truth": "CDAC（Cross-domain Attention Consistency）通过跨域注意力层在源域和目标域之间共享特征，并施加跨域注意力与自注意力模块预测之间的一致性约束，鼓励注意力图和输出在域间保持相似分布，即注意力级和输出级对齐。",
+      "source_doc": "Wang_CDAC_Cross-domain_Attention_Consistency_in_Transformer_for_Domain_Adaptive_Semantic_ICCV_2023_paper.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q056",
+      "question": "MAPSeg 如何统一处理异构医学图像分割中的多种域偏移？",
+      "ground_truth": "MAPSeg 基于 3D 掩码自编码和伪标签技术，构建了一个统一的 UDA 框架。它系统性地处理了异构医学图像分割中的四种不同域偏移（模态差异、扫描仪差异、站点差异、协议差异），是该领域首个能同时处理这么多类型域偏移的框架。",
+      "source_doc": "Zhang_MAPSeg_Unified_Unsupervised_Domain_Adaptation_for_Heterogeneous_Medical_Image_Segmentation_CVPR_2024_paper.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q057",
+      "question": "pOSAL 为什么使用基于 patch 的输出空间对抗学习？",
+      "ground_truth": "pOSAL 发现基于整体分割的对抗损失不足以驱动网络捕获分割细节，因此设计了基于 patch 的输出空间对抗学习框架，在 patch 级别进行细粒度判别，从而更好地解决不同数据集之间的域偏移问题，实现视盘和视杯的联合分割。",
+      "source_doc": "汇报（2）Patch-based Output Space Adversarial Learning for Joint Optic Disc and Cup Segmentation_MICCAI_2018_paper.pdf",
+      "question_type": "方法细节"
+    },
+    {
+      "id": "q058",
+      "question": "SimCLR 和 MoCo 在对比学习框架上有什么主要区别？",
+      "ground_truth": "SimCLR 使用大型 batch size 和同一 batch 内的样本作为负样本，依赖数据增强和投影头来学习表示。MoCo 则使用队列和动量编码器构建动态字典，允许使用更大的负样本集，且不依赖超大 batch size。两者都是自监督对比学习的代表性工作，但 MoCo 通过动量更新机制解决了动态字典的一致性问题。",
+      "source_doc": [
+        "ASimple Framework for Contrastive Learning of Visual Representations.pdf",
+        "Momentum Contrast for Unsupervised Visual Representation Learnin.pdf"
+      ],
+      "question_type": "比较性"
+    },
+    {
+      "id": "q059",
+      "question": "FDA 和 D-GAP 都利用了傅里叶变换，它们的方法有什么不同？",
+      "ground_truth": "FDA（Fourier Domain Adaptation）通过直接交换源域和目标域图像的低频频谱来实现域适应，是一种无需训练的数据级方法。D-GAP 则是一种梯度引导的数据增强方法，通过任务梯度计算频率敏感度图，自适应地在源样本和目标样本之间插值幅度，同时结合像素空间混合。FDA 更简单直接，D-GAP 更复杂但针对性更强。",
+      "source_doc": [
+        "FDA.pdf",
+        "2511.11286v2.pdf"
+      ],
+      "question_type": "比较性"
+    },
+    {
+      "id": "q060",
+      "question": "GraTa 和 VPTTA 都是医学图像分割的测试时适应方法，它们的核心思想有何不同？",
+      "ground_truth": "GraTa 通过梯度对齐来改进测试时适应的优化方向和步长，直接微调模型参数。VPTTA 则冻结模型参数，为每个测试图像训练一个特定的视觉提示来实现适应，避免了错误累积和灾难性遗忘。两者都面向医学图像分割的 TTA，但 GraTa 优化模型参数，VPTTA 优化提示参数。",
+      "source_doc": [
+        "GraTa.pdf",
+        "VPTTA.pdf"
+      ],
+      "question_type": "比较性"
+    },
+    {
+      "id": "q061",
+      "question": "CaCo 和 ProCA 都使用了原型（prototype）概念，它们的方法有何异同？",
+      "ground_truth": "CaCo 和 ProCA 都利用原型进行类别级别的特征对齐。CaCo 构建语义感知字典，将目标样本分配到基于源域类别先验的伪类别中，实现类别对比学习。ProCA 则将类间信息纳入类别原型，采用以类别为中心的分布对齐策略，将同一类别原型视为正例。两者都超越了单纯的实例对比，但 CaCo 更侧重于字典查找式的类别对比，ProCA 更侧重于类别原型的对比适应。",
+      "source_doc": [
+        "Category Contrast for Unsupervised Domain Adaptation in Visual Task.pdf",
+        "Prototypical Contrast Adaptation for Domain.pdf"
+      ],
+      "question_type": "比较性"
+    },
+    {
+      "id": "q062",
+      "question": "哪些方法利用了 CycleGAN 进行医学图像的跨域分割？",
+      "ground_truth": "MC-CCycleGAN（Moment-Consistent Contrastive CycleGAN）利用 CycleGAN 进行跨域胰腺图像分割，通过在生成器编码器中引入对比损失来约束特征提取。此外，Deep MR to CT Synthesis 也使用了基于 CycleGAN 思想的对抗网络进行无配对医学图像合成。",
+      "source_doc": [
+        "Moment-Consistent_Contrastive_CycleGAN_for_Cross-Domain_Pancreatic_Image_Segmentation.pdf",
+        "Deep MR to CT Synthesis using Unpaired Data.pdf"
+      ],
+      "question_type": "综合性"
+    },
+    {
+      "id": "q063",
+      "question": "在医学图像分割的域适应中，哪些方法使用了对抗学习？",
+      "ground_truth": "在医学图像分割的域适应中，pOSAL 使用基于 patch 的输出空间对抗学习来解决不同数据集之间的域偏移问题。Distill-SODA 也引入了基于风格的对抗数据增强作为硬正例。此外，Deep MR to CT Synthesis 使用 GAN（生成对抗网络）进行无配对医学图像合成。",
+      "source_doc": [
+        "汇报（2）Patch-based Output Space Adversarial Learning for Joint Optic Disc and Cup Segmentation_MICCAI_2018_paper.pdf",
+        "Distill-SODA.pdf",
+        "Deep MR to CT Synthesis using Unpaired Data.pdf"
+      ],
+      "question_type": "综合性"
+    },
+    {
+      "id": "q064",
+      "question": "哪些方法属于测试时适应（TTA）而不需要源域数据？",
+      "ground_truth": "属于测试时适应（TTA）且不需要源域数据的方法包括：GraTa（通过梯度对齐改进优化）、VPTTA（为每个测试图像训练特定提示）等。这些方法在测试阶段仅利用目标域数据和模型本身进行适应，不依赖源域训练数据。",
+      "source_doc": [
+        "GraTa.pdf",
+        "VPTTA.pdf"
+      ],
+      "question_type": "综合性"
+    },
+    {
+      "id": "q065",
+      "question": "对比学习在域适应中的应用有哪些代表性工作？",
+      "ground_truth": "对比学习在域适应中的代表性工作包括：SimCLR 和 MoCo（自监督对比学习的基础框架）、MPSCL（医学图像分割中的自步对比学习）、CaCo（类别对比域适应）、MIC（掩码图像一致性中的对比学习）、以及 MC-CCycleGAN（对比 CycleGAN 中的对比损失约束）。这些方法利用对比学习来增强特征表示的判别性和域不变性。",
+      "source_doc": [
+        "ASimple Framework for Contrastive Learning of Visual Representations.pdf",
+        "Momentum Contrast for Unsupervised Visual Representation Learnin.pdf",
+        "2103.08454v1.pdf",
+        "Category Contrast for Unsupervised Domain Adaptation in Visual Task.pdf",
+        "MIC.pdf"
+      ],
+      "question_type": "综合性"
+    },
+    {
+      "id": "q066",
+      "question": "哪些方法利用了 Transformer 或基础模型进行域适应？",
+      "ground_truth": "利用 Transformer 或基础模型的方法包括：CDAC（跨域注意力一致性 Transformer）、Distill-SODA（自监督 ViT）、SaLIP（SAM + CLIP 级联）、PFM-JONet（提示基础模型混合训练）、以及 MAPSeg（3D 掩码自编码）。这些方法借助 Transformer 或基础模型的强大表示能力来提升域适应性能。",
+      "source_doc": [
+        "Wang_CDAC_Cross-domain_Attention_Consistency_in_Transformer_for_Domain_Adaptive_Semantic_ICCV_2023_paper.pdf",
+        "Distill-SODA.pdf",
+        "Test-Time_Adaptation_with_SaLIP_A_Cascade_of_SAM_and_CLIP_CVPRW_2024_paper.pdf",
+        "Unsupervised_Domain_Adaptation_for_VHR_Urban_Scene_Segmentation_via_Prompted_Foundation_Model-Based_Hybrid_Training_Joint-Optimized_Network (1).pdf",
+        "Zhang_MAPSeg_Unified_Unsupervised_Domain_Adaptation_for_Heterogeneous_Medical_Image_Segmentation_CVPR_2024_paper.pdf"
+      ],
+      "question_type": "综合性"
+    },
+    {
+      "id": "q067",
+      "question": "FDA 和 FAUDA-Net 都使用了傅里叶变换，但方法层次有何不同？",
+      "ground_truth": "FDA 是在数据层面进行傅里叶域适应，通过交换低频频谱直接修改输入图像，无需训练。FAUDA-Net 则是在特征层面利用频率约束（相位和幅度分量）和频率感知对比学习来对齐域分布，需要在训练过程中学习。FDA 更简单直接，FAUDA-Net 更深层且与网络训练耦合。",
+      "source_doc": [
+        "FDA.pdf",
+        "1-s2.0-S0895611125001934-main.pdf"
+      ],
+      "question_type": "比较性"
+    },
+    {
+      "id": "q068",
+      "question": "在医学图像分割中，哪些方法专门处理多源域或多模态的域适应问题？",
+      "ground_truth": "处理多源域或多模态域适应的方法包括：MAPSeg（统一处理异构医学图像分割中的多种域偏移，包括模态差异、扫描仪差异等）、MSDA4PASS（多源域适应用于全景语义分割）、以及 Deep MR to CT Synthesis（处理 MR 到 CT 的跨模态图像合成）。",
+      "source_doc": [
+        "Zhang_MAPSeg_Unified_Unsupervised_Domain_Adaptation_for_Heterogeneous_Medical_Image_Segmentation_CVPR_2024_paper.pdf",
+        "Multi-Source Domain Adaptation for Panoramic Semantic.pdf",
+        "Deep MR to CT Synthesis using Unpaired Data.pdf"
+      ],
+      "question_type": "综合性"
+    },
+    {
+      "id": "q069",
+      "question": "SAM 和 CLIP 在医学图像分割中如何被利用？",
+      "ground_truth": "SaLIP 方法将 SAM 和 CLIP 级联使用：SAM 负责生成基于部件的分割掩码，CLIP 负责从掩码池中检索与目标区域对应的掩码，然后 SAM 根据检索结果进行精细分割。这种方法无需训练和领域专家知识，实现了零样本医学图像分割。",
+      "source_doc": "Test-Time_Adaptation_with_SaLIP_A_Cascade_of_SAM_and_CLIP_CVPRW_2024_paper.pdf",
+      "question_type": "概念性"
+    },
+    {
+      "id": "q070",
+      "question": "在遥感图像域适应中，EasySeg 和 PFM-JONet 有什么不同？",
+      "ground_truth": "EasySeg 面向遥感图像语义分割，通过交互学习和主动学习结合的方式，引入 SFAL 策略和 ISS-Net 网络进行错误感知域适应。PFM-JONet 则利用提示基础模型进行混合训练，通过联合优化解决高分辨率城市场景的特征不一致性和域偏移问题。两者都面向遥感图像，但 EasySeg 更侧重交互式标注，PFM-JONet 更侧重基础模型。",
+      "source_doc": [
+        "EasySeg_An_Error-Aware_Domain_Adaptation_Framework_for_Remote_Sensing_Imagery_Semantic_Segmentation_via_Interactive_Learning_and_Active_Learning.pdf",
+        "Unsupervised_Domain_Adaptation_for_VHR_Urban_Scene_Segmentation_via_Prompted_Foundation_Model-Based_Hybrid_Training_Joint-Optimized_Network (1).pdf"
+      ],
+      "question_type": "比较性"
+    }
+  ],
+  "statistics": {
+    "total_qa_pairs": 70,
+    "by_type": {
+      "事实性": 5,
+      "方法细节": 35,
+      "数值型": 1,
+      "概念性": 10,
+      "比较性": 10,
+      "综合性": 9
+    },
+    "by_difficulty": {
+      "简单（可直接从摘要回答）": 16,
+      "中等（需要理解论文方法）": 35,
+      "困难（需要跨论文比较）": 19
+    }
+  }
+}

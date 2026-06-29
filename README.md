@@ -162,7 +162,24 @@ cd PaperPilot
 
 ### 2. 设置 Docker 存储卷
 
-创建 docker volume 文件夹，并在 docker-compose.yml 同级目录下设置 `.env` 文件：
+创建 `volumes` 文件夹用于持久化 Milvus 数据，并在 docker-compose.yml 同级目录下配置 `.env` 文件。
+
+**Windows 本地部署（推荐）**：
+
+```bash
+# 创建存储目录（数据持久化到本地，重启不丢失）
+mkdir volumes/milvus
+mkdir volumes/etcd
+mkdir volumes/minio
+```
+
+`.env` 文件内容：
+
+```properties
+DOCKER_VOLUME_DIRECTORY=.
+```
+
+**Linux / WSL2 部署**：
 
 ```bash
 mkdir -p /docker_data_volume/milvus_local
@@ -173,6 +190,8 @@ mkdir -p /docker_data_volume/milvus_local
 ```properties
 DOCKER_VOLUME_DIRECTORY=/docker_data_volume/milvus_local
 ```
+
+> **注意**：`volumes` 目录必须存在，否则 Milvus 数据仅在容器内存储，重启容器后数据会丢失。
 
 ### 3. 运行 Milvus
 
@@ -212,17 +231,19 @@ docker compose logs -f
 
 ### 6. Milvus 管理后台（Attu）
 
-启动 Attu：
+启动 Attu（**必须加 `--network milvus`**，否则无法连接 Milvus）：
 
 ```bash
 docker run -d --rm --network milvus -p 8000:3000 --name attu26 -e MILVUS_HOST=milvus-standalone zilliz/attu:v2.6
 ```
 
+> **注意**：`docker compose up -d` 启动的 Milvus 容器在 `milvus` 网络中。Attu 如果不在同一网络，即使填写 `milvus-standalone:19530` 也会报 DNS 解析失败。`--network milvus` 参数让 Attu 加入同一网络。
+
 访问 http://localhost:8000/
 
 使用 Milvus 启动时设置的用户名密码登录：比如 root / admin123
 
-> **注意**：Milvus 地址需要使用 `milvus-standalone:19530`
+在连接页面，Milvus 地址填写 `milvus-standalone:19530`（**不要填 127.0.0.1**，因为 Attu 也是容器，127.0.0.1 指向的是 Attu 容器自身）。
 
 ![screenshot](images/screenshot_05.png)
 
@@ -232,13 +253,29 @@ docker run -d --rm --network milvus -p 8000:3000 --name attu26 -e MILVUS_HOST=mi
 
 ### 7. 创建 mildoc 向量数据库
 
-进入 Attu，在首页点击创建。
+> **重要**：此步骤必须在启动 `mildoc_index` 之前完成，否则服务启动时会报 `database not found[database=mildoc]` 错误。
+
+**方法一：通过 Attu 图形界面**
+
+进入 Attu（http://localhost:8000），在首页点击创建。
 
 填写名字：`mildoc`
 
 选择时区：`beijing`
 
 ![screenshot](images/screenshot_08.png)
+
+**方法二：通过命令行（推荐）**
+
+```python
+pip install pymilvus
+python -c "
+from pymilvus import connections, db
+connections.connect(host='127.0.0.1', port='19530', user='root', password='admin123')
+db.create_database('mildoc')
+print('数据库列表:', db.list_database())
+"
+```
 
 ### 8. 其他部署模式
 
@@ -264,7 +301,8 @@ MINIO_BUCKET_NAME: milvus
 `.env` 配置：
 
 ```properties
-DOCKER_VOLUME_DIRECTORY=/docker_data_volume/milvus_minio
+# Windows 本地部署用 . ，Linux/WSL2 用 /docker_data_volume/milvus_minio
+DOCKER_VOLUME_DIRECTORY=.
 ```
 
 #### 8.2 milvus_oss 模式（本地 Milvus + 阿里云 OSS）
@@ -290,7 +328,8 @@ MINIO_REGION: cn-hangzhou
 `.env` 配置：
 
 ```properties
-DOCKER_VOLUME_DIRECTORY=/docker_data_volume/milvus_oss
+# Windows 本地部署用 . ，Linux/WSL2 用 /docker_data_volume/milvus_oss
+DOCKER_VOLUME_DIRECTORY=.
 ```
 
 ## 补充步骤：frp 内网穿透配置（架构 B 需要）
@@ -641,6 +680,52 @@ mildoc_202601/
 ├── ROADMAP.md                 # 项目路线图
 └── README.md                  # 本文档
 ```
+
+## 常见问题
+
+### Milvus 报 `database not found[database=mildoc]`
+
+**原因**：Milvus 启动后默认只有 `default` 数据库，项目配置使用 `mildoc` 数据库，但未创建。
+
+**解决**：参考"第二步 7. 创建 mildoc 向量数据库"，通过 Attu 或命令行创建该数据库。
+
+### Attu 连接 Milvus 报 DNS 解析失败
+
+**报错**：`Name resolution failed for target dns:milvus-standalone:19530`
+
+**原因**：Attu 容器和 Milvus 容器不在同一个 Docker 网络中。`docker compose up -d` 会创建一个名为 `milvus` 的独立网络，而单独 `docker run` 启动的 Attu 默认在 `bridge` 网络中。
+
+**解决**：启动 Attu 时加 `--network milvus` 参数。如果 Attu 已经在运行，可以手动加入网络：
+
+```bash
+docker network connect milvus attu26
+```
+
+### Milvus 重启后数据丢失（数据库/Collection 消失）
+
+**原因**：`volumes` 目录不存在，Docker 挂载路径时创建了空目录但数据仅在容器内。容器重启后数据丢失。
+
+**解决**：
+1. 确保 `DOCKER_VOLUME_DIRECTORY=.` 指向本地目录
+2. 在 `docker-compose.yml` 同级目录下创建 `volumes/milvus`、`volumes/etcd`、`volumes/minio`
+3. 重启 Milvus 后数据将持久化到这些目录
+
+### Attu 页面中 Milvus 地址填什么
+
+- Attu 是 Docker 容器时：填 `milvus-standalone:19530`（容器名），**不能填 `127.0.0.1`**（指向 Attu 容器自身）
+- Attu 直接运行在宿主机时：填 `127.0.0.1:19530`
+
+### Windows Defender 误删 frpc.exe
+
+**解决**：在"Windows 安全中心 → 病毒和威胁防护 → 管理设置 → 排除项 → 添加排除文件夹"中排除 frp 所在目录，然后重新下载。
+
+### 企业微信报 `from ip: xxx.xxx.xxx.xxx` 不在白名单
+
+**原因**：使用 frp 穿透时，企业微信 API 调用的出口 IP 是你本地的公网 IP，不是云服务器 IP。
+
+**解决**：在企微管理后台 → 应用管理 → 自建应用 → 企业可信 IP 中，添加该出口 IP。查看出口 IP：浏览器访问 https://ipinfo.io
+
+---
 
 ## License
 

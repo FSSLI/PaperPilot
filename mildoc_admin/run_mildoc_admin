@@ -7,3 +7,6 @@ nohup uv run gunicorn --workers 1 --bind 0.0.0.0:8870 admin_app:app >> mildoc_ad
 
 # 调试运行
 # uv run gunicorn --workers 1 --bind 0.0.0.0:8870 admin_app:app
+
+# 调试运行
+#uv run admin_app.py
