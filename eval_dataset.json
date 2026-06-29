@@ -1,6 +1,6 @@
 {
-  "dataset_name": "FFT-References-RAG-Eval",
-  "description": "基于10篇医学图像分割/域适应/频率分析文献构造的RAG评测数据集",
+  "dataset_name": "PaperPilot-RAG-Eval",
+  "description": "基于37篇计算机视觉/深度学习文献构造的RAG评测数据集，涵盖医学图像分割、域适应、对比学习、GAN、测试时适应等主题",
   "papers": [
     {
       "filename": "1-s2.0-S0895611125001934-main.pdf",
