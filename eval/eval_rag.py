@@ -2,7 +2,8 @@
 RAG 评测脚本 - 基于 Ragas 框架
 
 使用 Ragas 框架对 PaperPilot 的 RAG 管线进行系统评测，
-覆盖 Faithfulness / Answer Relevancy / Context Precision / Context Recall 四项指标。
+覆盖 Faithfulness / Answer Relevancy / Context Precision / Context Recall 四项指标，
+以及引用溯源相关的 Citation Accuracy 指标。
 
 运行方式：
     1. 确保 mildoc_wxkf 服务已配置（.env 文件中 LLM、Embedding、Milvus 等配置正确）
@@ -20,6 +21,7 @@ RAG 评测脚本 - 基于 Ragas 框架
 """
 
 import os
+import re
 import sys
 import json
 import time
@@ -79,6 +81,65 @@ try:
 except ImportError as e:
     HAS_RAGAS = False
     _RAGAS_IMPORT_ERROR = str(e)
+
+
+# ═══════════════════════════════════════════════════════════════
+# 引用溯源辅助函数
+# ═══════════════════════════════════════════════════════════════
+
+def extract_citations(answer: str) -> List[str]:
+    """从回答文本中提取所有引用的文件名。
+
+    匹配格式：【来源：《filename》】
+    返回去重后的文件名列表。
+    """
+    pattern = r"【来源：《([^》]+)》】"
+    matches = re.findall(pattern, answer)
+    # 去重保持顺序
+    seen = set()
+    unique = []
+    for m in matches:
+        if m not in seen:
+            seen.add(m)
+            unique.append(m)
+    return unique
+
+
+def compute_citation_metrics(
+    answer: str,
+    cited_files: List[str],
+    retrieved_files: List[str],
+    ground_truth_file: str,
+) -> Dict[str, Any]:
+    """计算单条 QA 的引用相关指标。
+
+    - citation_recall: 引用的文档是否覆盖了正确答案来源（召回率视角）
+    - citation_precision: 引用的文档中有多少是真正被检索到的（精确率视角）
+    - citation_accuracy: 引用的文档是否包含正确答案来源（最严格指标）
+    - has_citation: 是否有任何引用
+    """
+    has_citation = len(cited_files) > 0
+
+    # Citation Recall：引用中是否包含正确答案来源
+    citation_recall = 1.0 if ground_truth_file in cited_files else 0.0
+
+    # Citation Precision：引用的文档中，有多少在检索结果中
+    if cited_files:
+        cited_in_retrieved = sum(1 for f in cited_files if f in retrieved_files)
+        citation_precision = cited_in_retrieved / len(cited_files)
+    else:
+        citation_precision = 0.0
+
+    # Citation Accuracy（最严格）：是否引用了正确答案来源
+    citation_accuracy = 1.0 if ground_truth_file in cited_files else 0.0
+
+    return {
+        "has_citation": has_citation,
+        "cited_files": cited_files,
+        "citation_recall": citation_recall,
+        "citation_precision": round(citation_precision, 4),
+        "citation_accuracy": citation_accuracy,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -177,7 +238,7 @@ class RAGEvaluator:
         self.ragas_llm = LangchainLLMWrapper(self.judge_llm)
         self.judge_embeddings = LangchainEmbeddingsWrapper(self.embeddings)
 
-        # 提示词模板（与 RAGService 保持一致）
+        # 提示词模板（与 RAGService 保持一致，含引用溯源）
         self.PROMPT_TEMPLATE = """你是一位专业的客服人员，请根据提供的知识库内容来回答用户的问题。
 
 知识库内容:
@@ -188,16 +249,20 @@ class RAGEvaluator:
 回答要求：
 1. 【角色定位】你是一位专业、耐心、友善的客服代表
 2. 【回答原则】严格基于知识库内容回答，不得编造或推测信息
-3. 【准确性要求】
+3. 【引用溯源】每当你引用知识库中的具体信息时，必须在引用处标注来源，格式为【来源：《文件名》】
+   - 例如：「该方法在ImageNet上达到了95.3%的准确率【来源：《ResNet.pdf》】」
+   - 如果回答涉及多个文献，用多个【来源：《文件名》】分别标注
+   - 综合性结论应引用多个相关文献
+4. 【准确性要求】
    - 如果知识库中有明确答案，请准确完整地回答
    - 如果知识库中信息不完整，说明现有信息并提示用户可联系人工客服获取更详细信息
    - 如果知识库中完全没有相关信息，请礼貌地说明无法找到相关资料，建议用户转接人工客服
-4. 【回答格式】
+5. 【回答格式】
    - 使用纯文本格式，不使用markdown格式
    - 语言简洁明了，适合微信对话环境
    - 使用礼貌、专业的语调
    - 如需列举，使用数字序号或简单的分行
-5. 【转人工提示】当遇到以下情况时，主动建议用户转接人工客服：
+6. 【转人工提示】当遇到以下情况时，主动建议用户转接人工客服：
    - 复杂的售后问题
    - 需要个人账户信息查询的问题
    - 投诉或纠纷相关问题
@@ -288,8 +353,12 @@ class RAGEvaluator:
                 else:
                     logger.warning(f"  重排序失败，使用原始检索结果")
 
-            # 第三步：构建完整上下文
-            contexts = [doc.page_content for doc in final_docs]
+            # 第三步：构建完整上下文（含文档名标记，供引用溯源使用）
+            context_parts = []
+            for doc in final_docs:
+                doc_name = doc.metadata.get("doc_name", "未知文档")
+                context_parts.append(f"【来源：《{doc_name}》】\n{doc.page_content}")
+            contexts = context_parts
 
             # 第四步：调用 LLM 生成回答
             context_text = "\n\n".join(contexts)
@@ -304,18 +373,26 @@ class RAGEvaluator:
 
             # 采集元数据
             retrieved_meta = []
+            retrieved_file_set = []
             for doc in final_docs:
+                doc_name = doc.metadata.get("doc_name", "unknown")
                 retrieved_meta.append({
-                    "doc_name": doc.metadata.get("doc_name", "unknown"),
+                    "doc_name": doc_name,
                     "doc_path_name": doc.metadata.get("doc_path_name", ""),
                     "rerank_score": doc.metadata.get("rerank_score"),
                     "content_length": len(doc.page_content),
                 })
+                retrieved_file_set.append(doc_name)
+
+            # 提取回答中的引用
+            cited_files = extract_citations(answer)
 
             return {
                 "answer": answer,
                 "contexts": contexts,
                 "retrieved_docs_meta": retrieved_meta,
+                "retrieved_file_set": retrieved_file_set,
+                "cited_files": cited_files,
                 "token_usage": {
                     "prompt_tokens": _prompt_tokens,
                     "completion_tokens": _completion_tokens,
@@ -373,9 +450,11 @@ class RAGEvaluator:
                 "question": question,
                 "ground_truth": ground_truth,
                 "question_type": q_type,
+                "source_doc": qa.get("source_doc", ""),
                 "answer": result["answer"],
                 "contexts": result["contexts"],
                 "retrieved_docs_meta": result["retrieved_docs_meta"],
+                "cited_files": result.get("cited_files", []),
                 "success": result["success"],
                 "error": result["error"],
                 "elapsed_seconds": round(elapsed, 2),
@@ -458,6 +537,42 @@ class RAGEvaluator:
                 metric_scores = {}
 
         # ── 第三阶段：汇总并保存结果 ──────────────────────────
+        # ── 第四阶段：引用溯源指标计算 ────────────────────────
+        citation_metrics_results = {}
+        if successful_records:
+            cit_recalls, cit_precisions, cit_accuracies, cit_has = [], [], [], []
+            for r in successful_records:
+                cited = r.get("cited_files", [])
+                retrieved = [d["doc_name"] for d in r.get("retrieved_docs_meta", [])]
+                gt_file = r.get("source_doc", "")
+                cm = compute_citation_metrics(
+                    answer=r["answer"],
+                    cited_files=cited,
+                    retrieved_files=retrieved,
+                    ground_truth_file=gt_file,
+                )
+                # 将指标注入 record，便于人工审查
+                r["citation_metrics"] = cm
+                cit_has.append(cm["has_citation"])
+                if cm["has_citation"]:
+                    cit_recalls.append(cm["citation_recall"])
+                    cit_precisions.append(cm["citation_precision"])
+                cit_accuracies.append(cm["citation_accuracy"])
+
+            citation_metrics_results = {
+                "citation_rate": round(sum(cit_has) / len(cit_has), 4) if cit_has else 0.0,
+                "citation_recall": round(sum(cit_recalls) / len(cit_recalls), 4) if cit_recalls else 0.0,
+                "citation_precision": round(sum(cit_precisions) / len(cit_precisions), 4) if cit_precisions else 0.0,
+                "citation_accuracy": round(sum(cit_accuracies) / len(cit_accuracies), 4) if cit_accuracies else 0.0,
+            }
+
+            logger.info(f"\n{'─'*40}")
+            logger.info("引用溯源评测结果：")
+            logger.info(f"  引用率（Citation Rate）:      {citation_metrics_results['citation_rate']}")
+            logger.info(f"  引用召回率（Citation Recall）: {citation_metrics_results['citation_recall']}")
+            logger.info(f"  引用精确率（Citation Precision）:{citation_metrics_results['citation_precision']}")
+            logger.info(f"  引用准确率（Citation Accuracy）:{citation_metrics_results['citation_accuracy']}")
+            logger.info(f"{'─'*40}")
         final_results = {
             "metadata": {
                 "eval_time": datetime.now().isoformat(),
@@ -467,6 +582,7 @@ class RAGEvaluator:
                 "use_rerank": self.use_rerank,
             },
             "ragas_scores": metric_scores if successful_records else {},
+            "citation_metrics": citation_metrics_results,
             "per_question_results": eval_records,
         }
 
@@ -505,6 +621,11 @@ class RAGEvaluator:
         if metric_scores:
             for name, score in metric_scores.items():
                 logger.info(f"  {name}: {score}")
+        if citation_metrics_results:
+            logger.info(f"  引用率（Citation Rate）:      {citation_metrics_results['citation_rate']}")
+            logger.info(f"  引用召回率（Citation Recall）: {citation_metrics_results['citation_recall']}")
+            logger.info(f"  引用精确率（Citation Precision）:{citation_metrics_results['citation_precision']}")
+            logger.info(f"  引用准确率（Citation Accuracy）:{citation_metrics_results['citation_accuracy']}")
         logger.info(f"  结果文件:   {output_path}")
         logger.info(f"{'='*60}")
 

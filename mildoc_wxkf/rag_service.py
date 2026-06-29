@@ -34,6 +34,7 @@ class SourceDocument(BaseModel):
     doc_path_name: str  # 文档完整路径
     doc_type: str  # 文档类型
     content_preview: str  # 内容预览（前200字符）
+    content: str = ""  # 完整 chunk 内容，用于引用溯源
     similarity_score: Optional[float] = None  # 相似度分数
 
 
@@ -75,7 +76,7 @@ class RAGService:
 
 请只返回场景类型对应的数字（1-6）："""
     
-    # 统一的提示词模板 - 专业客服版本
+    # 统一的提示词模板 - 专业客服版本（含引用溯源）
     PROMPT_TEMPLATE = """你是一位专业的客服人员，请根据提供的知识库内容来回答用户的问题。
 
 知识库内容:
@@ -86,16 +87,20 @@ class RAGService:
 回答要求：
 1. 【角色定位】你是一位专业、耐心、友善的客服代表
 2. 【回答原则】严格基于知识库内容回答，不得编造或推测信息
-3. 【准确性要求】
+3. 【引用溯源】每当你引用知识库中的具体信息时，必须在引用处标注来源，格式为【来源：《文件名》】
+   - 例如：「该方法在ImageNet上达到了95.3%的准确率【来源：《ResNet.pdf》】」
+   - 如果回答涉及多个文献，用多个【来源：《文件名》】分别标注
+   - 综合性结论应引用多个相关文献
+4. 【准确性要求】
    - 如果知识库中有明确答案，请准确完整地回答
    - 如果知识库中信息不完整，说明现有信息并提示用户可联系人工客服获取更详细信息
    - 如果知识库中完全没有相关信息，请礼貌地说明无法找到相关资料，建议用户转接人工客服
-4. 【回答格式】
+5. 【回答格式】
    - 使用纯文本格式，不使用markdown格式
    - 语言简洁明了，适合微信对话环境
    - 使用礼貌、专业的语调
    - 如需列举，使用数字序号或简单的分行
-5. 【转人工提示】当遇到以下情况时，主动建议用户转接人工客服：
+6. 【转人工提示】当遇到以下情况时，主动建议用户转接人工客服：
    - 复杂的售后问题
    - 需要个人账户信息查询的问题
    - 投诉或纠纷相关问题
@@ -359,8 +364,13 @@ class RAGService:
             
             # 第三步：使用选定的文档生成回答
             with get_openai_callback() as cb:  ## 在上下文中获取 OpenAI 回调处理器，方便地公开令牌和成本信息
-                # 构建上下文
-                context = "\n\n".join([doc.page_content for doc in final_docs])
+                # 构建上下文（每个 chunk 前标注来源）
+                context_parts = []
+                for doc in final_docs:
+                    metadata = doc.metadata if hasattr(doc, 'metadata') else {}
+                    doc_name = metadata.get("doc_name", "未知文档")
+                    context_parts.append(f"【来源：《{doc_name}》】\n{doc.page_content}")
+                context = "\n\n".join(context_parts)
                 
                 # 使用统一的提示模板生成回答
                 prompt = self.PROMPT_TEMPLATE.format(context=context, question=query)
@@ -390,12 +400,13 @@ class RAGService:
                     
                     # 获取内容预览
                     content_preview = doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content
-                    
+
                     source_doc = SourceDocument(
                         doc_name=doc_name,
                         doc_path_name=doc_path_name,
                         doc_type=doc_type,
                         content_preview=content_preview,
+                        content=doc.page_content,  # 完整 chunk，用于引用溯源
                         similarity_score=rerank_score  # 使用rerank分数
                     )
                     processed_source_docs.append(source_doc)
@@ -410,7 +421,8 @@ class RAGService:
                         doc_name=f"文档{i+1}",
                         doc_path_name="",
                         doc_type="unknown",
-                        content_preview="无法获取文档信息"
+                        content_preview="无法获取文档信息",
+                        content=""
                     ))
             
             # 构建token使用情况

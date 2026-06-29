@@ -4,6 +4,7 @@
 用法: python compute_ragas.py
 """
 import json
+import re
 import sys
 import os
 import logging
@@ -142,6 +143,69 @@ logger.info(f"{'='*50}")
 
 # 合并到原结果并保存
 results["ragas_scores"] = metric_scores
+
+# ── 引用溯源指标重算 ──────────────────────────────────────
+def _extract_citations(answer):
+    pattern = r"【来源：《([^》]+)》】"
+    matches = re.findall(pattern, answer)
+    seen = set()
+    unique = []
+    for m in matches:
+        if m not in seen:
+            seen.add(m)
+            unique.append(m)
+    return unique
+
+
+def _compute_citation_metrics(answer, cited_files, retrieved_files, ground_truth_file):
+    has_citation = len(cited_files) > 0
+    citation_recall = 1.0 if ground_truth_file in cited_files else 0.0
+    if cited_files:
+        cited_in_retrieved = sum(1 for f in cited_files if f in retrieved_files)
+        citation_precision = round(cited_in_retrieved / len(cited_files), 4)
+    else:
+        citation_precision = 0.0
+    citation_accuracy = 1.0 if ground_truth_file in cited_files else 0.0
+    return {
+        "has_citation": has_citation,
+        "cited_files": cited_files,
+        "citation_recall": citation_recall,
+        "citation_precision": citation_precision,
+        "citation_accuracy": citation_accuracy,
+    }
+
+
+if successful:
+    cit_recalls, cit_precisions, cit_accuracies, cit_has = [], [], [], []
+    for r in successful:
+        cited = _extract_citations(r.get("answer", ""))
+        retrieved = [d["doc_name"] for d in r.get("retrieved_docs_meta", [])]
+        gt_file = r.get("source_doc", "")
+        cm = _compute_citation_metrics(r.get("answer", ""), cited, retrieved, gt_file)
+        r["citation_metrics"] = cm
+        r["cited_files"] = cited
+        cit_has.append(cm["has_citation"])
+        if cm["has_citation"]:
+            cit_recalls.append(cm["citation_recall"])
+            cit_precisions.append(cm["citation_precision"])
+        cit_accuracies.append(cm["citation_accuracy"])
+
+    citation_metrics_results = {
+        "citation_rate": round(sum(cit_has) / len(cit_has), 4) if cit_has else 0.0,
+        "citation_recall": round(sum(cit_recalls) / len(cit_recalls), 4) if cit_recalls else 0.0,
+        "citation_precision": round(sum(cit_precisions) / len(cit_precisions), 4) if cit_precisions else 0.0,
+        "citation_accuracy": round(sum(cit_accuracies) / len(cit_accuracies), 4) if cit_accuracies else 0.0,
+    }
+    results["citation_metrics"] = citation_metrics_results
+
+    logger.info(f"\n{'─'*40}")
+    logger.info("引用溯源评测结果：")
+    logger.info(f"  引用率（Citation Rate）:      {citation_metrics_results['citation_rate']}")
+    logger.info(f"  引用召回率（Citation Recall）: {citation_metrics_results['citation_recall']}")
+    logger.info(f"  引用精确率（Citation Precision）:{citation_metrics_results['citation_precision']}")
+    logger.info(f"  引用准确率（Citation Accuracy）:{citation_metrics_results['citation_accuracy']}")
+    logger.info(f"{'─'*40}")
+
 with open(input_path, "w", encoding="utf-8") as f:
     json.dump(results, f, ensure_ascii=False, indent=2)
 
