@@ -25,14 +25,18 @@
 
 ### 评测体系
 
-- [ ] 准备评测数据集：从已入库文献中构造 20-30 组 QA 对
+- [x] 准备评测数据集：从已入库文献中构造 20-30 组 QA 对
   - 格式：问题 + 标准答案 + 出处（论文名 + 段落位置）
-- [ ] 引入 Ragas 评测框架（https://github.com/explodinggradients/ragas）
-- [ ] 评测维度：
-  - **检索召回率（Recall@K）**：检索到的段落是否包含正确答案
+  - 37 篇文献，70 组 QA（事实性/方法细节/概念性/比较性/综合性/数值型）
+- [x] 引入 Ragas 评测框架（https://github.com/explodinggradients/ragas）
+- [x] 评测维度：
+  - **检索召回率（Context Recall）**：检索到的段落是否包含正确答案
   - **回答忠实度（Faithfulness）**：LLM 回答是否基于检索内容，有无幻觉
   - **回答相关性（Answer Relevancy）**：回答是否切题
-- [ ] 建立自动化评测脚本，改参数后可一键跑分
+  - **上下文精确度（Context Precision）**：相关块是否排在前面
+- [x] 建立自动化评测脚本，改参数后可一键跑分
+  - eval_rag.py（数据采集）+ compute_ragas.py（指标计算）
+  - 当前结果：Faithfulness=0.85, Answer Relevancy=0.74, Context Recall=0.77, Context Precision=0.63
 
 ### 引用溯源
 
@@ -101,3 +105,6 @@
 | 2026-06-28 | 修复微信文件名丢失问题 | ✅ 完成 |
 | 2026-06-28 | 制定项目路线图 | ✅ 完成 |
 | 2026-06-29 | README 重构 + Mermaid 架构图 + MIT LICENSE | ✅ 完成 |
+| 2026-06-29 | RAG 评测体系（Ragas 框架 + 4项指标 + 37篇文献70组QA） | ✅ 完成 |
+| 2026-06-29 | 文件哈希去重（避免重复 embedding 调用） | ✅ 完成 |
+| 2026-06-29 | uv→conda 迁移 + 项目结构整理 | ✅ 完成 |
