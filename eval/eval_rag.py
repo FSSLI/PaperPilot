@@ -7,10 +7,10 @@ RAG 评测脚本 - 基于 Ragas 框架
 运行方式：
     1. 确保 mildoc_wxkf 服务已配置（.env 文件中 LLM、Embedding、Milvus 等配置正确）
     2. 将待评测的文献上传到 MinIO 知识库（确保 mildoc_index 已完成索引）
-    3. 在 mildoc_wxkf 目录下执行：
+    3. 在 eval/ 目录下执行：
        python eval_rag.py
     4. 可选参数：
-       --dataset ../eval_dataset.json    评测数据集路径（默认同级目录下的 eval_dataset.json）
+       --dataset eval_dataset.json    评测数据集路径（默认同级目录下的 eval_dataset.json）
        --output eval_results.json        结果输出路径（默认 eval_results.json）
        --no-rerank                       关闭 rerank 进行评测
        --limit N                         仅评测前 N 条 QA
@@ -39,8 +39,31 @@ logging.basicConfig(
 logger = logging.getLogger("eval_rag")
 
 # ─────────────────────────────────────────────────────────────
+# 兼容处理：ragas 0.4.x 强制导入 langchain_community.chat_models.vertexai，
+# 但 langchain-community >= 0.3 已移除该模块。
+# 这里动态注入一个 stub 模块，避免 ragas 加载失败。
+# ─────────────────────────────────────────────────────────────
+import types
+import importlib
+
+def _patch_vertexai_stub():
+    """为 ragas 注入 langchain_community.chat_models.vertexai 的 stub 模块"""
+    try:
+        import langchain_community.chat_models
+        if not hasattr(langchain_community.chat_models, 'vertexai'):
+            stub = types.ModuleType('langchain_community.chat_models.vertexai')
+            stub.ChatVertexAI = type('ChatVertexAI', (), {})
+            sys.modules['langchain_community.chat_models.vertexai'] = stub
+            langchain_community.chat_models.vertexai = stub
+    except ImportError:
+        pass
+
+_patch_vertexai_stub()
+
+# ─────────────────────────────────────────────────────────────
 # 延迟导入 Ragas（首次运行前会自动检查）
 # ─────────────────────────────────────────────────────────────
+_RAGAS_IMPORT_ERROR = ""
 try:
     from datasets import Dataset as HFDataset
     from ragas import evaluate as ragas_evaluate
@@ -53,8 +76,9 @@ try:
     from ragas.llms import LangchainLLMWrapper
     from ragas.embeddings import LangchainEmbeddingsWrapper
     HAS_RAGAS = True
-except ImportError:
+except ImportError as e:
     HAS_RAGAS = False
+    _RAGAS_IMPORT_ERROR = str(e)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -71,23 +95,76 @@ class RAGEvaluator:
     def __init__(self, use_rerank: bool = True):
         self.use_rerank = use_rerank
 
-        # 延迟导入项目内部模块（需要在 mildoc_wxkf 目录下运行）
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        # 延迟导入项目内部模块（config 在 wxkf/ 目录，需要将 wxkf/ 加入路径）
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        wxkf_dir = os.path.join(project_root, "mildoc_wxkf")
+        sys.path.insert(0, wxkf_dir)
         from config import Config
-        from rag_service import RAGService
         from langchain_openai import ChatOpenAI
-        from langchain_milvus import Milvus
+        from langchain_community.callbacks.manager import get_openai_callback
 
         self.Config = Config
-        self.RAGService = RAGService
+        self.get_openai_callback = get_openai_callback
 
-        # 初始化 RAG 服务（复用已有的 Milvus 连接、Embedding、LLM）
-        logger.info("正在初始化 RAG 服务...")
-        self.rag_service = RAGService()
+        # 初始化 Embedding 模型（用于向量检索）
+        logger.info("正在初始化 Embedding 模型...")
+        from openai import OpenAI
 
-        # 单独初始化一个用于 Ragas 评判的 LLM（Judge LLM）
-        # 复用同一个 LLM 配置，但独立实例以避免回调冲突
-        logger.info("正在初始化 Ragas Judge LLM...")
+        class CustomEmbeddings:
+            def __init__(self, model_name, api_key, api_base, dimensions):
+                self.client = OpenAI(api_key=api_key, base_url=api_base)
+                self.model_name = model_name
+                self.dimensions = dimensions
+
+            def embed_query(self, text):
+                return self.embed_documents([text])[0]
+
+            def embed_documents(self, texts):
+                response = self.client.embeddings.create(
+                    model=self.model_name,
+                    input=texts,
+                    dimensions=self.dimensions,
+                    encoding_format="float",
+                )
+                return [d.embedding for d in response.data]
+
+        self.embeddings = CustomEmbeddings(
+            model_name=Config.LLM_EMBEDDING_MODEL_NAME,
+            api_key=Config.LLM_EMBEDDING_API_KEY,
+            api_base=Config.LLM_EMBEDDING_BASE_URL,
+            dimensions=Config.MILVUS_VECTOR_DIM,
+        )
+
+        # 初始化 Milvus 检索（使用 MilvusClient，绕过 langchain_milvus 的 bug）
+        logger.info("正在初始化 Milvus 检索...")
+        from pymilvus import MilvusClient
+        uri = f"http://{Config.MILVUS_HOST}:{Config.MILVUS_PORT}"
+        connect_kwargs = {"uri": uri, "db_name": Config.MILVUS_DATABASE}
+        if Config.MILVUS_USER:
+            connect_kwargs["user"] = Config.MILVUS_USER
+        if Config.MILVUS_PASSWORD:
+            connect_kwargs["password"] = Config.MILVUS_PASSWORD
+        self._milvus_client = MilvusClient(**connect_kwargs)
+        logger.info(f"Milvus 检索初始化成功: {uri}, db={Config.MILVUS_DATABASE}")
+
+        # 初始化 LLM
+        logger.info("正在初始化 LLM...")
+        self.llm = ChatOpenAI(
+            model=Config.LLM_MODEL_NAME,
+            openai_api_key=Config.LLM_API_KEY,
+            openai_api_base=Config.LLM_BASE_URL,
+            temperature=0.1,
+        )
+
+        # 初始化重排序服务
+        from rerank_service import get_rerank_service
+        self.rerank_service = get_rerank_service()
+        if self.rerank_service:
+            logger.info("重排序服务初始化成功")
+        else:
+            logger.info("重排序服务未配置，跳过 rerank")
+
+        # 初始化 Ragas Judge LLM
         self.judge_llm = ChatOpenAI(
             model=Config.LLM_MODEL_NAME,
             api_key=Config.LLM_API_KEY,
@@ -95,11 +172,38 @@ class RAGEvaluator:
             temperature=0.1,
         )
 
-        # Ragas 需要的 Embedding 模型包装器
-        self.judge_embeddings = LangchainEmbeddingsWrapper(self.rag_service.embeddings)
-
-        # Ragas LLM 包装器
+        from ragas.llms import LangchainLLMWrapper
+        from ragas.embeddings import LangchainEmbeddingsWrapper
         self.ragas_llm = LangchainLLMWrapper(self.judge_llm)
+        self.judge_embeddings = LangchainEmbeddingsWrapper(self.embeddings)
+
+        # 提示词模板（与 RAGService 保持一致）
+        self.PROMPT_TEMPLATE = """你是一位专业的客服人员，请根据提供的知识库内容来回答用户的问题。
+
+知识库内容:
+{context}
+
+用户问题: {question}
+
+回答要求：
+1. 【角色定位】你是一位专业、耐心、友善的客服代表
+2. 【回答原则】严格基于知识库内容回答，不得编造或推测信息
+3. 【准确性要求】
+   - 如果知识库中有明确答案，请准确完整地回答
+   - 如果知识库中信息不完整，说明现有信息并提示用户可联系人工客服获取更详细信息
+   - 如果知识库中完全没有相关信息，请礼貌地说明无法找到相关资料，建议用户转接人工客服
+4. 【回答格式】
+   - 使用纯文本格式，不使用markdown格式
+   - 语言简洁明了，适合微信对话环境
+   - 使用礼貌、专业的语调
+   - 如需列举，使用数字序号或简单的分行
+5. 【转人工提示】当遇到以下情况时，主动建议用户转接人工客服：
+   - 复杂的售后问题
+   - 需要个人账户信息查询的问题
+   - 投诉或纠纷相关问题
+   - 知识库无法覆盖的专业技术问题
+
+请基于以上要求，为用户提供专业的客服回答："""
 
         logger.info("评测器初始化完成")
 
@@ -114,26 +218,46 @@ class RAGEvaluator:
             - error: 错误信息（如有）
         """
         try:
-            # 第一步：向量检索（与 query_service 逻辑一致，但保留完整 page_content）
-            initial_k = 10 if self.use_rerank and self.rag_service.rerank_service else 3
-            retriever = self.rag_service.vector_store.as_retriever(
-                search_type="similarity",
-                search_kwargs={"k": initial_k},
+            # 第一步：向量检索（使用 MilvusClient，绕过 langchain_milvus bug）
+            initial_k = 10 if self.use_rerank and self.rerank_service else 3
+            query_vector = self.embeddings.embed_query(question)
+            search_results = self._milvus_client.search(
+                collection_name=self.Config.MILVUS_COLLECTION_NAME,
+                data=[query_vector],
+                limit=initial_k,
+                output_fields=["content", "doc_name", "doc_path_name", "doc_type"],
+                search_params={
+                    "metric_type": "COSINE",
+                    "params": {"nprobe": 64},
+                },
             )
-            candidate_docs = retriever.invoke(question)
+
+            # 将搜索结果转为 Document 兼容格式
+            class _Doc:
+                def __init__(self, page_content, metadata):
+                    self.page_content = page_content
+                    self.metadata = metadata
+
+            # MilvusClient.search 返回 [[Hit, ...]] 外层是 query 列表（这里只有1个query）
+            hits = search_results[0] if search_results else []
+            candidate_docs = [
+                _Doc(hit["entity"]["content"], {
+                    "doc_name": hit["entity"].get("doc_name", "unknown"),
+                    "doc_path_name": hit["entity"].get("doc_path_name", ""),
+                    "doc_type": hit["entity"].get("doc_type", "unknown"),
+                    "rerank_score": hit.get("distance", 0),
+                })
+                for hit in hits
+            ]
             logger.info(f"  检索到 {len(candidate_docs)} 个候选文档")
 
             # 第二步：重排序
             final_docs = candidate_docs
-            if (
-                self.use_rerank
-                and self.rag_service.rerank_service
-                and len(candidate_docs) > 1
-            ):
+            if self.use_rerank and self.rerank_service and len(candidate_docs) > 1:
                 doc_contents = [doc.page_content for doc in candidate_docs]
                 rerank_top_n = min(5, len(candidate_docs))
 
-                rerank_response = self.rag_service.rerank_service.rerank_documents(
+                rerank_response = self.rerank_service.rerank_documents(
                     query=question,
                     documents=doc_contents,
                     top_n=rerank_top_n,
@@ -144,22 +268,19 @@ class RAGEvaluator:
                     for rerank_doc in rerank_response.documents:
                         if 0 <= rerank_doc.index < len(candidate_docs):
                             original_doc = candidate_docs[rerank_doc.index]
-                            if hasattr(original_doc, "metadata"):
-                                original_doc.metadata["rerank_score"] = rerank_doc.relevance_score
+                            original_doc.metadata["rerank_score"] = rerank_doc.relevance_score
                             reranked_docs.append(original_doc)
 
                     # 安全检查：保留原始最高相似度文档
                     if candidate_docs and len(reranked_docs) > 0:
                         first_doc = candidate_docs[0]
                         first_in_rerank = any(
-                            hasattr(d, "metadata")
-                            and d.metadata.get("doc_name") == first_doc.metadata.get("doc_name")
+                            d.metadata.get("doc_name") == first_doc.metadata.get("doc_name")
                             and d.page_content == first_doc.page_content
                             for d in reranked_docs
                         )
                         if not first_in_rerank:
-                            if hasattr(first_doc, "metadata"):
-                                first_doc.metadata["rerank_score"] = 1.0
+                            first_doc.metadata["rerank_score"] = 1.0
                             reranked_docs.insert(0, first_doc)
 
                     final_docs = reranked_docs[:3]
@@ -167,28 +288,27 @@ class RAGEvaluator:
                 else:
                     logger.warning(f"  重排序失败，使用原始检索结果")
 
-            # 第三步：构建完整上下文（**关键：使用完整 page_content，不截断**）
+            # 第三步：构建完整上下文
             contexts = [doc.page_content for doc in final_docs]
 
             # 第四步：调用 LLM 生成回答
-            from langchain_community.callbacks.manager import get_openai_callback
-
             context_text = "\n\n".join(contexts)
-            prompt = self.rag_service.PROMPT_TEMPLATE.format(
-                context=context_text, question=question
-            )
+            prompt = self.PROMPT_TEMPLATE.format(context=context_text, question=question)
 
-            with get_openai_callback() as cb:
-                answer = self.rag_service.llm.invoke(prompt).content
+            _prompt_tokens = _completion_tokens = _total_tokens = 0
+            with self.get_openai_callback() as cb:
+                answer = self.llm.invoke(prompt).content
+                _prompt_tokens = cb.prompt_tokens
+                _completion_tokens = cb.completion_tokens
+                _total_tokens = cb.total_tokens
 
             # 采集元数据
             retrieved_meta = []
             for doc in final_docs:
-                meta = doc.metadata if hasattr(doc, "metadata") else {}
                 retrieved_meta.append({
-                    "doc_name": meta.get("doc_name", "unknown"),
-                    "doc_path_name": meta.get("doc_path_name", ""),
-                    "rerank_score": meta.get("rerank_score"),
+                    "doc_name": doc.metadata.get("doc_name", "unknown"),
+                    "doc_path_name": doc.metadata.get("doc_path_name", ""),
+                    "rerank_score": doc.metadata.get("rerank_score"),
                     "content_length": len(doc.page_content),
                 })
 
@@ -197,9 +317,9 @@ class RAGEvaluator:
                 "contexts": contexts,
                 "retrieved_docs_meta": retrieved_meta,
                 "token_usage": {
-                    "prompt_tokens": cb.prompt_tokens,
-                    "completion_tokens": cb.completion_tokens,
-                    "total_tokens": cb.total_tokens,
+                    "prompt_tokens": _prompt_tokens,
+                    "completion_tokens": _completion_tokens,
+                    "total_tokens": _total_tokens,
                 },
                 "success": True,
                 "error": None,
@@ -313,7 +433,8 @@ class RAGEvaluator:
                     llm=self.ragas_llm,
                     embeddings=self.judge_embeddings,
                 )
-                ragas_results = ragas_output.to_dict()
+                # ragas 0.4.x uses _scores_dict (dict of lists), not to_dict()
+                ragas_results = ragas_output._scores_dict
 
                 # 计算均值
                 metric_scores = {}
@@ -404,7 +525,7 @@ def main():
   python eval_rag.py
 
   # 指定数据集和输出路径
-  python eval_rag.py --dataset ../eval_dataset.json --output results.json
+  python eval_rag.py --dataset eval_dataset.json --output results.json
 
   # 关闭 rerank 进行对比评测
   python eval_rag.py --no-rerank --output results_no_rerank.json
@@ -415,8 +536,8 @@ def main():
     )
     parser.add_argument(
         "--dataset",
-        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "eval_dataset.json"),
-        help="评测数据集 JSON 文件路径（默认: ../eval_dataset.json）",
+        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "eval_dataset.json"),
+        help="评测数据集 JSON 文件路径（默认: 同级目录 eval_dataset.json）",
     )
     parser.add_argument(
         "--output",
@@ -438,8 +559,8 @@ def main():
 
     # 检查 Ragas 是否安装
     if not HAS_RAGAS:
-        logger.error("缺少评测依赖，请先安装:")
-        logger.error("  pip install ragas datasets langchain-openai langchain-community")
+        logger.error("导入评测依赖失败:")
+        logger.error(f"  {_RAGAS_IMPORT_ERROR}")
         sys.exit(1)
 
     # 加载评测数据集

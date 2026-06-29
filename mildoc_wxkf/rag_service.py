@@ -14,14 +14,19 @@ from pydantic import BaseModel
 from langchain_milvus import Milvus
 from langchain_openai import ChatOpenAI
 from langchain_community.callbacks.manager import get_openai_callback
-from langfuse.langchain import CallbackHandler as LangfuseCallbackHandler
 from config import Config
 from rerank_service import get_rerank_service
 
 # 配置日志
 logger = logging.getLogger(__name__)
 
-langfuse_handler = LangfuseCallbackHandler()
+# Langfuse 可选导入
+try:
+    from langfuse.langchain import CallbackHandler as LangfuseCallbackHandler
+    langfuse_handler = LangfuseCallbackHandler()
+except ImportError:
+    langfuse_handler = None
+    logger.info("Langfuse 未安装，跳过可观测性追踪")
 
 class SourceDocument(BaseModel):
     """源文档信息模型"""
@@ -198,18 +203,22 @@ class RAGService:
     def _initialize_vector_store(self):
         """初始化向量存储"""
         try:
-            # 构建Milvus连接参数
-            connection_args = {
-                "host": Config.MILVUS_HOST,
-                "port": Config.MILVUS_PORT,
-                "db_name": Config.MILVUS_DATABASE
-            }
+            from pymilvus import connections
             
-            # 如果有用户名和密码，添加到连接参数中
+            # 先通过 pymilvus connections 建立连接（langchain_milvus ORM 模式依赖此连接）
+            connect_kwargs = {
+                "alias": "default",
+                "host": Config.MILVUS_HOST,
+                "port": str(Config.MILVUS_PORT),
+                "db_name": Config.MILVUS_DATABASE,
+            }
             if Config.MILVUS_USER:
-                connection_args["user"] = Config.MILVUS_USER
+                connect_kwargs["user"] = Config.MILVUS_USER
             if Config.MILVUS_PASSWORD:
-                connection_args["password"] = Config.MILVUS_PASSWORD
+                connect_kwargs["password"] = Config.MILVUS_PASSWORD
+            
+            connections.connect(**connect_kwargs)
+            logger.info(f"Milvus 连接已建立: {Config.MILVUS_HOST}:{Config.MILVUS_PORT}, db={Config.MILVUS_DATABASE}")
             
             # 配置搜索参数，针对IVF_FLAT索引优化
             search_params = {
@@ -218,6 +227,17 @@ class RAGService:
                     "nprobe": 64  # 建议设置为nlist的6.25% (64/1024)，平衡性能和召回率
                 }
             }
+            
+            # connection_args 供 langchain_milvus 内部使用
+            connection_args = {
+                "host": Config.MILVUS_HOST,
+                "port": Config.MILVUS_PORT,
+                "db_name": Config.MILVUS_DATABASE,
+            }
+            if Config.MILVUS_USER:
+                connection_args["user"] = Config.MILVUS_USER
+            if Config.MILVUS_PASSWORD:
+                connection_args["password"] = Config.MILVUS_PASSWORD
             
             # 初始化Milvus向量存储
             self.vector_store = Milvus(
@@ -345,7 +365,7 @@ class RAGService:
                 # 使用统一的提示模板生成回答
                 prompt = self.PROMPT_TEMPLATE.format(context=context, question=query)
 
-                if (Config.LANGFUSE_ENABLE):
+                if Config.LANGFUSE_ENABLE and langfuse_handler is not None:
                     answer = self.llm.invoke(prompt, config={"callbacks":[langfuse_handler]}).content
                 else:
                     answer = self.llm.invoke(prompt).content

@@ -64,7 +64,7 @@ graph LR
 
 | 层面 | 技术 |
 |------|------|
-| 应用框架 | Python 3.12, Flask, uv |
+| 应用框架 | Python 3.12, Flask, pip |
 | RAG 框架 | LangChain (Retrieve + Rerank) |
 | 向量数据库 | Milvus 2.6.7 |
 | 对象存储 | MinIO |
@@ -115,9 +115,9 @@ cd mildoc_milvus/milvus_local/
 docker compose up -d
 
 # 4. 启动应用服务
-cd ../../mildoc_index && uv sync && uv run main.py --provider minio --mode listen
-cd ../mildoc_admin && uv sync && uv run admin_app.py
-cd ../mildoc_wxkf && uv sync && uv run wxkf_callback_app.py
+cd ../../mildoc_index && python main.py --provider minio --mode listen
+cd ../mildoc_admin && python admin_app.py
+cd ../mildoc_wxkf && python wxkf_callback_app.py
 ```
 
 ---
@@ -128,12 +128,15 @@ cd ../mildoc_wxkf && uv sync && uv run wxkf_callback_app.py
 
 ## 第一步：环境准备
 
-### 1. 安装 Python 3.12 和 uv 包管理器
+### 1. 安装 Python 3.12 和 conda 环境
 
 ```bash
+# 创建 conda 环境
 conda create -n mildoc python=3.12
 conda activate mildoc
-pip install uv
+
+# 安装项目依赖
+pip install -r requirements.txt
 ```
 
 ### 2. 下载 frp 内网穿透工具
@@ -441,17 +444,15 @@ OPENAI_API_KEY=你的API密钥
 ### 3. 运行服务
 
 ```bash
-# 安装依赖
-uv sync
+# 安装依赖（首次运行前执行一次即可）
+cd mildoc_index
+pip install -r requirements.txt
 
 # 调试运行
-uv run main.py --provider minio --mode listen
+python main.py --provider minio --mode listen
 
-# 后台运行
-nohup uv run main.py --provider minio --mode listen >> mildoc_index.log 2>&1 &
-
-# 查看日志
-tail -f mildoc_index.log
+# 后台运行（Windows PowerShell）
+Start-Process -FilePath "python" -ArgumentList "main.py --provider minio --mode listen" -RedirectStandardOutput "mildoc_index.log"
 ```
 
 ## 第五步：注册企业微信
@@ -491,13 +492,14 @@ SHARE_UPLOAD_PASSPHRASE=<自定义口令>
 
 ```bash
 # 安装依赖
-uv sync
+cd mildoc_admin
+pip install -r requirements.txt
 
 # 调试运行
-uv run admin_app.py
+python admin_app.py
 
-# 后台运行
-nohup uv run gunicorn --workers 1 --bind 0.0.0.0:8870 admin_app:app >> mildoc_admin.log 2>&1 &
+# 后台运行（Windows PowerShell）
+Start-Process -FilePath "python" -ArgumentList "-m gunicorn --workers 1 --bind 0.0.0.0:8870 admin_app:app" -RedirectStandardOutput "mildoc_admin.log"
 ```
 
 ### 4. 登录管理后台
@@ -571,13 +573,13 @@ RERANK_API_KEY=
 
 ```bash
 cd mildoc_wxkf
-uv sync
+pip install -r requirements.txt
 
 # 调试运行
-uv run wxkf_callback_app.py
+python wxkf_callback_app.py
 
-# 后台运行
-nohup uv run gunicorn --workers 1 --bind 0.0.0.0:8890 wxkf_callback_app:app >> mildoc_wxkf.log 2>&1 &
+# 后台运行（Windows PowerShell）
+Start-Process -FilePath "python" -ArgumentList "-m gunicorn --workers 1 --bind 0.0.0.0:8890 wxkf_callback_app:app" -RedirectStandardOutput "mildoc_wxkf.log"
 ```
 
 ### 4. 开放公网访问端口
@@ -674,9 +676,9 @@ mildoc_202601/
 ├── mildoc_index/              # 文献索引服务
 ├── mildoc_admin/              # 文献管理后台
 ├── mildoc_wxkf/               # 微信问答接口
+├── eval/                       # RAG 评测（eval_rag.py / compute_ragas.py）
 ├── images/                    # 文档截图
-├── pyproject.toml             # Python 项目配置
-├── requirements-all.txt       # 全部依赖列表
+├── requirements.txt           # 全部依赖列表
 ├── ROADMAP.md                 # 项目路线图
 └── README.md                  # 本文档
 ```
