@@ -11,14 +11,10 @@
 
 ### 待办
 
-- [ ] 绘制系统架构图（数据流 + 技术栈一张图）
-  - MinIO 事件驱动 → mildoc_index 自动索引 → Milvus 向量存储
-  - 微信消息 → mildoc_wxkf → LangChain Retrieve + Rerank → LLM → 回答
-  - mildoc_admin 管理后台
-  - Docker 基础设施 + frp 穿透
-- [ ] README 补充项目亮点、快速体验指引
+- [x] 绘制系统架构图（Mermaid 流程图，GitHub 原生渲染）
+- [x] README 重构为 GitHub 项目页面（功能亮点、架构图、技术栈、快速开始）
+- [x] 添加 LICENSE 文件（MIT）
 - [ ] 添加演示截图/GIF（发 PDF → 微信提问 → 得到回答的完整流程）
-- [ ] 添加 LICENSE 文件
 - [ ] 添加 GitHub Topics 标签
 
 ---
@@ -104,3 +100,4 @@
 | 2026-06-28 | 微信发送文件自动入库功能 | ✅ 完成 |
 | 2026-06-28 | 修复微信文件名丢失问题 | ✅ 完成 |
 | 2026-06-28 | 制定项目路线图 | ✅ 完成 |
+| 2026-06-29 | README 重构 + Mermaid 架构图 + MIT LICENSE | ✅ 完成 |
