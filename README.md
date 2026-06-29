@@ -114,8 +114,12 @@ cp mildoc_wxkf/.env.example mildoc_wxkf/.env
 cd mildoc_milvus/milvus_local/
 docker compose up -d
 
-# 4. 启动应用服务
-cd ../../mildoc_index && python main.py --provider minio --mode listen
+# 4. 激活 conda 环境并安装依赖
+conda activate mildoc
+pip install -r requirements.txt
+
+# 5. 启动应用服务
+cd ../mildoc_index && python main.py --mode listen
 cd ../mildoc_admin && python admin_app.py
 cd ../mildoc_wxkf && python wxkf_callback_app.py
 ```
@@ -425,35 +429,27 @@ https://platform.qianwenai.com/home/api-keys
 
 保存好你的 API Key，后续项目中会用到。
 
-## 第四步：运行文献索引服务 mildoc_index
+## 第四步：运行服务
 
-### 1. 进入项目目录
-
-```bash
-cd mildoc_index
-```
-
-### 2. 修改配置文件 .env
-
-补充密钥：
-
-```properties
-OPENAI_API_KEY=你的API密钥
-```
-
-### 3. 运行服务
+激活 conda 环境并安装依赖后，进入项目根目录，运行各服务：
 
 ```bash
-# 安装依赖（首次运行前执行一次即可）
-cd mildoc_index
-pip install -r requirements.txt
+conda activate mildoc
 
-# 调试运行
-python main.py --provider minio --mode listen
+# 文献索引服务（监听 MinIO 事件，自动解析入库）
+python mildoc_index/main.py --mode listen
 
-# 后台运行（Windows PowerShell）
-Start-Process -FilePath "python" -ArgumentList "main.py --provider minio --mode listen" -RedirectStandardOutput "mildoc_index.log"
+# 文献管理后台（另一个终端）
+python mildoc_admin/admin_app.py
+
+# 微信问答接口（另一个终端）
+python mildoc_wxkf/wxkf_callback_app.py
 ```
+
+各服务的 `.env` 配置参考第五步和第七步。
+
+> **注意**：项目已从 uv 迁移至 conda 管理依赖，所有 Python 服务均需在 `conda activate mildoc` 环境下运行。
+> 如果提示 `conda: command not found`，请先安装 [Miniconda](https://docs.conda.io/en/latest/miniconda.html)。
 
 ## 第五步：注册企业微信
 
@@ -473,63 +469,42 @@ Start-Process -FilePath "python" -ArgumentList "main.py --provider minio --mode 
 
 ![screenshot](images/screenshot_13.png)
 
-## 第六步：运行文献管理后台 mildoc_admin
+## 第六步：配置并运行文献管理后台 mildoc_admin
 
-### 1. 进入项目目录
-
-```bash
-cd mildoc_admin
-```
-
-### 2. 修改配置文件 .env
+### 1. 配置 .env
 
 ```properties
 # 共享上传口令（组内同学共用）
 SHARE_UPLOAD_PASSPHRASE=<自定义口令>
 ```
 
-### 3. 运行服务
+### 2. 运行服务
 
 ```bash
-# 安装依赖
-cd mildoc_admin
-pip install -r requirements.txt
-
-# 调试运行
-python admin_app.py
-
-# 后台运行（Windows PowerShell）
-Start-Process -FilePath "python" -ArgumentList "-m gunicorn --workers 1 --bind 0.0.0.0:8870 admin_app:app" -RedirectStandardOutput "mildoc_admin.log"
+conda activate mildoc
+python mildoc_admin/admin_app.py
 ```
 
-### 4. 登录管理后台
+默认账户密码：`admin` / `admin123`
 
 访问 http://127.0.0.1:8870
 
-默认账户密码（可在 `.env` 中修改）：
+### 3. 共享上传功能
 
-```properties
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
-```
-
-### 5. 共享上传功能
-
-管理后台内置了共享上传页面，允许组内同学通过口令（passphrase）上传文档，无需管理员账号登录。
+管理后台内置了共享上传页面，允许组内同学通过口令上传文档，无需管理员账号登录。
 
 访问地址：`http://<管理后台地址>:8870/share/upload`
 
 在 `.env` 中配置共享上传口令：
-
 ```properties
 SHARE_UPLOAD_PASSPHRASE=<自定义口令>
 ```
 
-## 第七步：运行微信问答接口 mildoc_wxkf
+## 第七步：配置并运行微信问答接口 mildoc_wxkf
 
 ### 1. 在企业微信中创建自建应用
 
-1.1 登录企微管理后台，创建自建应用
+登录企微管理后台，创建自建应用，获取 AgentId、Secret 密钥，以及企业 CorpID。
 
 ![screenshot](images/screenshot_14.png)
 
@@ -541,118 +516,56 @@ SHARE_UPLOAD_PASSPHRASE=<自定义口令>
 
 ![screenshot](images/screenshot_16.png)
 
-### 2. 准备配置参数
+### 2. 配置 .env
 
-修改项目配置文件 `.env`，填入企微自建应用相关参数：
+填入企微自建应用相关参数：
 
 ```properties
-# 微信应用配置
 CORP_ID=<你的企业微信 CorpID>
 AGENT_ID=<你的自建应用 AgentId>
 APP_SECRET=<你的自建应用 Secret>
-
-# 自行设置
 TOKEN=<自定义一个随机字符串>
 ENCODING_AES_KEY=<自定义一个43位随机字符串>
+LLM_API_KEY=<你的百炼 API Key>
+LLM_EMBEDDING_API_KEY=<你的百炼 API Key>
+RERANK_API_KEY=<你的百炼 API Key>
 ```
 
-阿里云百炼平台 API Key：
-
-```properties
-# LLM配置 百炼
-LLM_API_KEY=
-
-# LLM Embedding配置 百炼
-LLM_EMBEDDING_API_KEY=
-
-# LLM rerank 配置 百炼
-RERANK_API_KEY=
-```
-
-### 3. 进入项目目录，运行服务
+### 3. 运行服务
 
 ```bash
-cd mildoc_wxkf
-pip install -r requirements.txt
-
-# 调试运行
-python wxkf_callback_app.py
-
-# 后台运行（Windows PowerShell）
-Start-Process -FilePath "python" -ArgumentList "-m gunicorn --workers 1 --bind 0.0.0.0:8890 wxkf_callback_app:app" -RedirectStandardOutput "mildoc_wxkf.log"
+conda activate mildoc
+python mildoc_wxkf/wxkf_callback_app.py
 ```
 
-### 4. 开放公网访问端口
+### 4. 配置企业微信回调
 
-4.1 在阿里云 ECS 控制台，找到服务器，再找到"安全组"标签。
+在企微管理后台 → 应用管理 → 自建应用，配置回调地址：
 
-![screenshot](images/screenshot_17.png)
+`http://<你的公网IP>:8890/callback/command`
 
-4.2 在安全组详情页，找到"入方向"、"添加规则"
+> 如果使用 frp 内网穿透方案，回调地址填云服务器公网 IP：`http://<云服务器公网IP>:8890/callback/command`
+
+### 5. 开放公网访问端口
+
+在云服务器安全组中开放入方向规则：
+
+- 8890（微信客服接口）
+- 8870（管理后台，可选）
 
 访问来源：`0.0.0.0`
 
-![screenshot](images/screenshot_18.png)
+### 6. 配置企业可信 IP
 
-### 5. 测试页面
+在企微管理后台 → 应用管理 → 自建应用 → 企业可信 IP 中，添加你服务器的出口 IP。
 
-访问 `http://{ECS的公网IP}:8890/`
+> 使用 frp 穿透时，出口 IP 是你本地公网 IP（查看：https://ipinfo.io），不是云服务器 IP。
 
-### 6. 配置应用回调接口
+### 7. 创建并配置客服账号
 
-6.1 在企微管理后台，打开应用详情页
+在企微管理后台 → 应用管理 → 自建应用 → 微信客服中，创建账号并与自建应用建立连接。
 
-![screenshot](images/screenshot_19.png)
-
-6.2 填写回调地址和相关加密 token 信息
-
-加密 token 可以从项目配置文件中找到相关配置。
-
-回调地址：`http://{ECS服务器的公网IP}:8890/callback/command`
-
-![screenshot](images/screenshot_20.png)
-
-### 7. 配置企业可信 IP
-
-![screenshot](images/screenshot_21.png)
-
-### 8. 创建并配置客服账号
-
-8.1 在应用管理中，进入"微信客服"
-
-![screenshot](images/screenshot_22.png)
-
-8.2 创建账号 & 设置可调用应用
-
-![screenshot](images/screenshot_23.png)
-
-![screenshot](images/screenshot_24.png)
-
-![screenshot](images/screenshot_25.png)
-
-8.3 将自建应用和客服账号建立连接
-
-![screenshot](images/screenshot_26.png)
-
-![screenshot](images/screenshot_27.png)
-
-![screenshot](images/screenshot_28.png)
-
-8.4 查看/分享微信客服
-
-![screenshot](images/screenshot_29.png)
-
-### 9. 企业微信 IP 白名单
-
-使用 frp 穿透时，企业微信 API 主动调用（如发送消息）的出口 IP 是你本地的公网 IP（非云服务器 IP）。
-
-需要在企业微信管理后台 → 应用管理 → 自建应用 → 企业可信 IP 中，添加你本地的出口 IP。
-
-查看本地出口 IP：浏览器访问 https://ipinfo.io 或命令行执行 `curl ipinfo.io`
-
-如果报错提示 `from ip: xxx.xxx.xxx.xxx`，将该 IP 添加到白名单即可。
-
-### 10. 可选配置：Langfuse 可观测性
+### 8. 可选配置：Langfuse 可观测性
 
 项目集成了 Langfuse，用于追踪 LLM 调用的 token 消耗和检索效果。如需启用，在 `.env` 中配置：
 
