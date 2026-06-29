@@ -14,7 +14,7 @@
 - [x] 绘制系统架构图（Mermaid 流程图，GitHub 原生渲染）
 - [x] README 重构为 GitHub 项目页面（功能亮点、架构图、技术栈、快速开始）
 - [x] 添加 LICENSE 文件（MIT）
-- [ ] 添加演示截图/GIF（发 PDF → 微信提问 → 得到回答的完整流程）
+- [x] 添加演示截图/GIF（发 PDF → 微信提问 → 得到回答的完整流程）
 - [x] 添加 GitHub Topics 标签
 
 ---

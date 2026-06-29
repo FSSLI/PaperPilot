@@ -131,6 +131,9 @@ class RAGService:
             # 初始化重排序服务
             self._initialize_rerank_service()
             
+            # 初始化 BM25 检索（从 Milvus 加载全量 chunk 建索引）
+            self._initialize_bm25()
+            
             logger.info("RAG服务初始化完成")
             
         except Exception as e:
@@ -276,6 +279,76 @@ class RAGService:
             logger.warning(f"重排序服务初始化失败: {e}")
             self.rerank_service = None
 
+    def _initialize_bm25(self):
+        """从 Milvus 加载全量 chunk，构建 BM25 索引（jieba 中文分词）"""
+        try:
+            from pymilvus import Collection, CollectionSchema, FieldSchema, DataType, utility
+            from rank_bm25 import BM25Okapi
+            import jieba
+
+            collection = Collection(Config.MILVUS_COLLECTION_NAME)
+            collection.load()
+
+            # 加载全量数据（只取 text_field 和 metadata，避免加载向量节省内存）
+            all_fields = collection.query(
+                expr="id >= 0",
+                output_fields=["id", "content", "doc_name", "doc_path_name", "doc_type"],
+                limit=16384,
+            )
+
+            if not all_fields:
+                logger.warning("BM25 索引构建失败：Milvus 中无数据，请先索引文献")
+                self.bm25_index = None
+                self.bm25_corpus = []
+                self.bm25_metadata = []
+                return
+
+            # 提取文本和元数据
+            self.bm25_corpus = [hit["content"] for hit in all_fields]
+            self.bm25_metadata = [
+                {
+                    "doc_name": hit.get("doc_name", "unknown"),
+                    "doc_path_name": hit.get("doc_path_name", ""),
+                    "doc_type": hit.get("doc_type", "unknown"),
+                    "content": hit["content"],
+                }
+                for hit in all_fields
+            ]
+
+            # jieba 分词
+            tokenized_corpus = [list(jieba.cut(doc)) for doc in self.bm25_corpus]
+            self.bm25_index = BM25Okapi(tokenized_corpus)
+
+            logger.info(f"BM25 索引构建完成：{len(self.bm25_corpus)} 个 chunk")
+
+        except Exception as e:
+            logger.warning(f"BM25 索引初始化失败: {e}，将跳过 BM25 检索")
+            self.bm25_index = None
+            self.bm25_corpus = []
+            self.bm25_metadata = []
+
+    def _bm25_search(self, query: str, top_k: int = 25) -> List[Any]:
+        """BM25 关键词检索，返回 top_k 个候选 chunk（兼容 Document 对象格式）"""
+        if not self.bm25_index:
+            return []
+
+        import jieba
+        from rank_bm25 import BM25Okapi
+
+        query_tokens = list(jieba.cut(query))
+        scores = self.bm25_index.get_scores(query_tokens)
+
+        # 取 top_k 索引
+        top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+
+        class _Doc:
+            def __init__(self, page_content, metadata, bm25_score):
+                self.page_content = page_content
+                self.metadata = metadata
+                self.bm25_score = bm25_score
+
+        return [_Doc(self.bm25_corpus[i], self.bm25_metadata[i], scores[i]) for i in top_indices]
+
     def query_service(self, query: str, use_rerank: bool = True) -> RAGResponse:
         """核心查询服务方法
         
@@ -302,16 +375,41 @@ class RAGService:
             scene_info = None # 暂时不使用场景检测
             
             # 第一步：向量检索获取候选文档
-            initial_k = 10 if use_rerank and self.rerank_service else 3
+            initial_k = 25 if use_rerank and self.rerank_service else 3
             retriever = self.vector_store.as_retriever(
                 search_type="similarity",
                 search_kwargs={"k": initial_k}
             )
-            
-            # 获取候选文档
-            candidate_docs = retriever.invoke(query)
-            logger.info(f"📄 初始检索到 {len(candidate_docs)} 个候选文档")
-            
+            vector_docs = retriever.invoke(query)
+            logger.info(f"📄 向量检索到 {len(vector_docs)} 个候选文档")
+
+            # 第一步（并列）：BM25 关键词检索
+            bm25_docs = self._bm25_search(query, top_k=25)
+            logger.info(f"📄 BM25 检索到 {len(bm25_docs)} 个候选文档")
+
+            # 合并去重：以 page_content 为 key，向量分 + BM25 分相加
+            score_map = {}
+            for doc in vector_docs:
+                key = doc.page_content
+                vec_score = getattr(doc, 'metadata', {}).get('rerank_score', 1.0)
+                if key not in score_map:
+                    score_map[key] = {'doc': doc, 'combined_score': vec_score}
+                else:
+                    score_map[key]['combined_score'] += vec_score
+
+            for doc in bm25_docs:
+                key = doc.page_content
+                bm25_score = getattr(doc, 'bm25_score', 0.0)
+                if key not in score_map:
+                    score_map[key] = {'doc': doc, 'combined_score': bm25_score}
+                else:
+                    score_map[key]['combined_score'] += bm25_score
+
+            # 按综合分数排序，取 top-N 作为候选
+            sorted_items = sorted(score_map.values(), key=lambda x: x['combined_score'], reverse=True)
+            candidate_docs = [item['doc'] for item in sorted_items[:25]]
+            logger.info(f"📄 双路召回合并后共 {len(candidate_docs)} 个候选文档")
+
             # 第二步：重排序（如果启用）
             final_docs = candidate_docs
             if use_rerank and self.rerank_service and len(candidate_docs) > 1:
@@ -319,7 +417,7 @@ class RAGService:
                 doc_contents = [doc.page_content for doc in candidate_docs]
                 
                 # 增加重排序的top_n数量，确保不会过滤掉高相关度文档
-                rerank_top_n = min(5, len(candidate_docs))  # 从3增加到5，但不超过候选文档数量
+                rerank_top_n = min(20, len(candidate_docs))  # 从5提升到20，扩大候选池提升排序质量
                 
                 # 执行重排序
                 rerank_response = self.rerank_service.rerank_documents(

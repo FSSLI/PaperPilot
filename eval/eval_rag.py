@@ -208,6 +208,9 @@ class RAGEvaluator:
         self._milvus_client = MilvusClient(**connect_kwargs)
         logger.info(f"Milvus 检索初始化成功: {uri}, db={Config.MILVUS_DATABASE}")
 
+        # 初始化 BM25 索引
+        self._init_bm25()
+
         # 初始化 LLM
         logger.info("正在初始化 LLM...")
         self.llm = ChatOpenAI(
@@ -224,6 +227,9 @@ class RAGEvaluator:
             logger.info("重排序服务初始化成功")
         else:
             logger.info("重排序服务未配置，跳过 rerank")
+
+        # 初始化 BM25 索引
+        self._init_bm25()
 
         # 初始化 Ragas Judge LLM
         self.judge_llm = ChatOpenAI(
@@ -272,6 +278,78 @@ class RAGEvaluator:
 
         logger.info("评测器初始化完成")
 
+    def _init_bm25(self):
+        """从 Milvus 加载全量 chunk，构建 BM25 索引（jieba 中文分词）"""
+        try:
+            from pymilvus import connections, Collection
+            from rank_bm25 import BM25Okapi
+            import jieba
+
+            # 用 connections 查全量（MilvusClient query 不支持全量无过滤查询）
+            connections.connect(
+                alias="default",
+                host=self.Config.MILVUS_HOST,
+                port=str(self.Config.MILVUS_PORT),
+                db_name=self.Config.MILVUS_DATABASE,
+                user=self.Config.MILVUS_USER or None,
+                password=self.Config.MILVUS_PASSWORD or None,
+            )
+            collection = Collection(self.Config.MILVUS_COLLECTION_NAME)
+            collection.load()
+
+            # 查全量（expr="id >= 0" 是最通用的无过滤条件）
+            all_fields = collection.query(
+                expr="id >= 0",
+                output_fields=["id", "content", "doc_name", "doc_path_name", "doc_type"],
+                limit=16384,
+            )
+
+            if not all_fields:
+                logger.warning("BM25 索引构建失败：Milvus 中无数据")
+                self.bm25_index = None
+                self.bm25_corpus = []
+                self.bm25_metadata = []
+                return
+
+            self.bm25_corpus = [hit["content"] for hit in all_fields]
+            self.bm25_metadata = [
+                {
+                    "doc_name": hit.get("doc_name", "unknown"),
+                    "doc_path_name": hit.get("doc_path_name", ""),
+                    "doc_type": hit.get("doc_type", "unknown"),
+                    "content": hit["content"],
+                }
+                for hit in all_fields
+            ]
+
+            tokenized_corpus = [list(jieba.cut(doc)) for doc in self.bm25_corpus]
+            self.bm25_index = BM25Okapi(tokenized_corpus)
+            logger.info(f"BM25 索引构建完成：{len(self.bm25_corpus)} 个 chunk")
+
+        except Exception as e:
+            logger.warning(f"BM25 索引初始化失败: {e}，将跳过 BM25 检索")
+            self.bm25_index = None
+            self.bm25_corpus = []
+            self.bm25_metadata = []
+
+    def _bm25_search(self, query: str, top_k: int = 25):
+        """BM25 关键词检索，返回 top_k 个候选"""
+        if not self.bm25_index:
+            return []
+
+        import jieba
+        query_tokens = list(jieba.cut(query))
+        scores = self.bm25_index.get_scores(query_tokens)
+        top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+
+        class _Doc:
+            def __init__(self, page_content, metadata, bm25_score):
+                self.page_content = page_content
+                self.metadata = metadata
+                self.bm25_score = bm25_score
+
+        return [_Doc(self.bm25_corpus[i], self.bm25_metadata[i], scores[i]) for i in top_indices]
+
     def collect_single(self, question: str) -> Dict[str, Any]:
         """对单个问题执行完整的 RAG 管线，采集评测所需数据。
 
@@ -284,7 +362,7 @@ class RAGEvaluator:
         """
         try:
             # 第一步：向量检索（使用 MilvusClient，绕过 langchain_milvus bug）
-            initial_k = 10 if self.use_rerank and self.rerank_service else 3
+            initial_k = 25 if self.use_rerank and self.rerank_service else 3
             query_vector = self.embeddings.embed_query(question)
             search_results = self._milvus_client.search(
                 collection_name=self.Config.MILVUS_COLLECTION_NAME,
@@ -299,28 +377,52 @@ class RAGEvaluator:
 
             # 将搜索结果转为 Document 兼容格式
             class _Doc:
-                def __init__(self, page_content, metadata):
+                def __init__(self, page_content, metadata, vec_score=0.0):
                     self.page_content = page_content
                     self.metadata = metadata
+                    self.vec_score = vec_score
 
             # MilvusClient.search 返回 [[Hit, ...]] 外层是 query 列表（这里只有1个query）
             hits = search_results[0] if search_results else []
-            candidate_docs = [
+            vector_docs = [
                 _Doc(hit["entity"]["content"], {
                     "doc_name": hit["entity"].get("doc_name", "unknown"),
                     "doc_path_name": hit["entity"].get("doc_path_name", ""),
                     "doc_type": hit["entity"].get("doc_type", "unknown"),
                     "rerank_score": hit.get("distance", 0),
-                })
+                }, hit.get("distance", 0))
                 for hit in hits
             ]
-            logger.info(f"  检索到 {len(candidate_docs)} 个候选文档")
+            logger.info(f"  向量检索到 {len(vector_docs)} 个候选文档")
+
+            # 并列 BM25 检索
+            bm25_docs = self._bm25_search(question, top_k=25)
+            logger.info(f"  BM25 检索到 {len(bm25_docs)} 个候选文档")
+
+            # 合并去重：向量分 + BM25 分
+            score_map = {}
+            for doc in vector_docs:
+                key = doc.page_content
+                if key not in score_map:
+                    score_map[key] = {"doc": doc, "combined_score": doc.vec_score}
+                else:
+                    score_map[key]["combined_score"] += doc.vec_score
+            for doc in bm25_docs:
+                key = doc.page_content
+                if key not in score_map:
+                    score_map[key] = {"doc": doc, "combined_score": doc.bm25_score}
+                else:
+                    score_map[key]["combined_score"] += doc.bm25_score
+
+            sorted_items = sorted(score_map.values(), key=lambda x: x["combined_score"], reverse=True)
+            candidate_docs = [item["doc"] for item in sorted_items[:25]]
+            logger.info(f"  双路召回合并后共 {len(candidate_docs)} 个候选文档")
 
             # 第二步：重排序
             final_docs = candidate_docs
             if self.use_rerank and self.rerank_service and len(candidate_docs) > 1:
                 doc_contents = [doc.page_content for doc in candidate_docs]
-                rerank_top_n = min(5, len(candidate_docs))
+                rerank_top_n = min(20, len(candidate_docs))
 
                 rerank_response = self.rerank_service.rerank_documents(
                     query=question,

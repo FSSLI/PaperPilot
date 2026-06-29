@@ -432,7 +432,7 @@ def api_delete_file(file_path):
                 
                 if results:
                     # 删除 Milvus 中的记录
-                    ids_to_delete = [str(result['id']) for result in results]
+                    ids_to_delete = [result['id'] for result in results]
                     milvus_client.delete(
                         collection_name=MILVUS_COLLECTION,
                         filter=f'id in {ids_to_delete}'

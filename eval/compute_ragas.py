@@ -33,6 +33,7 @@ try:
     from ragas.metrics import Faithfulness, AnswerRelevancy, ContextPrecision, ContextRecall
     from ragas.llms import LangchainLLMWrapper
     from ragas.embeddings import LangchainEmbeddingsWrapper
+    from ragas.run_config import RunConfig
     from langchain_openai import ChatOpenAI
     from openai import OpenAI
 except ImportError as e:
@@ -107,30 +108,19 @@ eval_data = [
 hf_dataset = HFDataset.from_list(eval_data)
 
 # 分开跑指标：context_precision 必须单独跑，否则会报 nan（ragas bug）
-logger.info("阶段1：评测 faithfulness / answer_relevancy / context_recall...")
+logger.info("阶段1：单独评测 context_precision（max_workers=5，加速）...")
 output1 = ragas_evaluate(
-    dataset=hf_dataset,
-    metrics=[Faithfulness(), AnswerRelevancy(), ContextRecall()],
-    llm=ragas_llm,
-    embeddings=ragas_embeddings,
-)
-results1 = output1._scores_dict
-
-logger.info("阶段2：单独评测 context_precision（避免 ragas 内部 callback 冲突）...")
-output2 = ragas_evaluate(
     dataset=hf_dataset,
     metrics=[ContextPrecision()],
     llm=ragas_llm,
     embeddings=ragas_embeddings,
+    run_config=RunConfig(max_workers=5),
 )
-results2 = output2._scores_dict
-
-# 合并结果
-ragas_results = {**results1, **results2}
+results1 = output1._scores_dict
 
 # 计算均值
 metric_scores = {}
-for metric_name, scores in ragas_results.items():
+for metric_name, scores in results1.items():
     valid = [s for s in scores if s is not None and not (isinstance(s, float) and s != s)]
     if valid:
         metric_scores[metric_name] = round(sum(valid) / len(valid), 4)
@@ -141,8 +131,10 @@ for name, score in metric_scores.items():
     logger.info(f"  {name}: {score}")
 logger.info(f"{'='*50}")
 
-# 合并到原结果并保存
-results["ragas_scores"] = metric_scores
+# 保存结果：只更新 ragas_scores 中的 context_precision，保留其他已保存的指标
+if "ragas_scores" not in results:
+    results["ragas_scores"] = {}
+results["ragas_scores"]["context_precision"] = metric_scores.get("context_precision")
 
 # ── 引用溯源指标重算 ──────────────────────────────────────
 def _extract_citations(answer):

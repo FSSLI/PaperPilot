@@ -8,7 +8,13 @@
 
 PaperPilot 为解决这一痛点而设计：将所有文献上传到知识库，系统自动解析并向量化存储。研究中遇到问题时，直接在微信提问，系统基于你的全部文献智能检索并回答。
 
-![screenshot](images/screenshot_00.png)
+![screenshot](images/screenshot_30.png)
+
+**微信发送文件，自动解析入库**
+
+![screenshot](images/screenshot_31.png)
+
+**微信提问，AI 基于文献库回答（带引用来源）**
 
 ## 功能亮点
 
@@ -16,7 +22,7 @@ PaperPilot 为解决这一痛点而设计：将所有文献上传到知识库，
 - **微信发送文件入库**：直接在微信聊天中发送 PDF/Word 等文件，自动上传到 MinIO 并触发索引
 - **事件驱动索引**：基于 MinIO Bucket Notification，文献上传/删除自动触发解析和向量化
 - **多格式解析**：支持 PDF、Word、Excel、PPT、Markdown、纯文本，内置高精度 MinerU 解析器
-- **两阶段检索**：向量相似度检索 + Rerank 重排序，提升回答准确性
+- **两阶段检索**：向量相似度检索 + BM25 关键词混合召回，提升检索召回率
 - **共享上传**：组内成员通过口令上传文献，无需管理员账号
 - **可选 Langfuse 可观测性**：追踪 LLM 调用的 token 消耗和检索效果
 
@@ -51,7 +57,7 @@ graph LR
     IDX -->|"④ 解析 + 向量化"| MILVUS
 
     WU -->|"⑤ 发送问题"| WXKF
-    WXKF -->|"⑥ Retrieve + Rerank"| MILVUS
+    WXKF -->|"⑥ 混合检索"| MILVUS
     WXKF -->|"⑦ 生成回答"| LLM
     LLM -->|"⑧ 返回答案"| WU
 
@@ -65,7 +71,7 @@ graph LR
 | 层面 | 技术 |
 |------|------|
 | 应用框架 | Python 3.12, Flask, pip |
-| RAG 框架 | LangChain (Retrieve + Rerank) |
+| RAG 框架 | LangChain (向量检索 + BM25 混合召回) |
 | 向量数据库 | Milvus 2.6.7 |
 | 对象存储 | MinIO |
 | 文献解析 | MinerU, pdfplumber, python-docx, openpyxl |
