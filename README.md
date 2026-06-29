@@ -1,144 +1,132 @@
 # PaperPilot - 文献知识库问答系统
 
-## 第一步：系统介绍
+> 上传文献，微信提问，AI 基于你的文献库智能回答。
 
-### 1. 项目简介
+## 项目简介
 
-读研期间，阅读文献是日常工作的核心环节。然而，下载的 PDF 文献往往散落在各个文件夹中，没有系统整理。遇到某个技术细节需要回顾时，不得不挨个打开论文查找；面对大量英文文献，还需要频繁切换翻译软件辅助阅读——整个过程费时费力，效率很低。
+读研期间，下载的 PDF 文献往往散落在各个文件夹中，遇到技术细节需要回顾时不得不挨个打开论文查找，面对大量英文文献还要频繁切换翻译软件——费时费力。
 
-PaperPilot 正是为解决这一痛点而设计的智能文献知识库系统。你可以将所有下载的文献上传到知识库，系统会自动解析文档内容并进行向量化存储。当你在阅读或研究中遇到问题时，只需通过微信直接提问，系统会基于你上传的全部文献进行智能检索和问答，帮你快速找到答案。相比传统的手动翻阅 + 翻译的方式，效率提升显著。
+PaperPilot 为解决这一痛点而设计：将所有文献上传到知识库，系统自动解析并向量化存储。研究中遇到问题时，直接在微信提问，系统基于你的全部文献智能检索并回答。
 
 ![screenshot](images/screenshot_00.png)
 
-### 2. 系统概述
+## 功能亮点
 
-本系统基于 MinIO 对象存储和 Milvus 向量数据库，构建了一套面向科研场景的文献知识库问答解决方案。
+- **微信直接提问**：在微信客服中发送问题，基于 LangChain RAG 从文献库中检索相关内容，LLM 生成回答
+- **微信发送文件入库**：直接在微信聊天中发送 PDF/Word 等文件，自动上传到 MinIO 并触发索引
+- **事件驱动索引**：基于 MinIO Bucket Notification，文献上传/删除自动触发解析和向量化
+- **多格式解析**：支持 PDF、Word、Excel、PPT、Markdown、纯文本，内置高精度 MinerU 解析器
+- **两阶段检索**：向量相似度检索 + Rerank 重排序，提升回答准确性
+- **共享上传**：组内成员通过口令上传文献，无需管理员账号
+- **可选 Langfuse 可观测性**：追踪 LLM 调用的 token 消耗和检索效果
 
-系统包含三个核心模块：
+## 系统架构
 
-- **文献索引服务**（mildoc_index）
-- **文献管理系统**（mildoc_admin）
-- **微信问答接口**（mildoc_wxkf）
+```mermaid
+graph LR
+    subgraph Users["用户端"]
+        WU["微信用户"]
+        AU["管理员"]
+    end
 
-![screenshot](images/screenshot_01.png)
+    subgraph App["应用服务 (Python / Flask)"]
+        WXKF["mildoc_wxkf<br/>微信问答接口<br/>:8890"]
+        IDX["mildoc_index<br/>文献索引服务"]
+        ADM["mildoc_admin<br/>文献管理后台<br/>:8870"]
+    end
 
-### 3. 业务系统
+    subgraph Infra["基础设施 (Docker)"]
+        MINIO["MinIO<br/>对象存储"]
+        MILVUS["Milvus<br/>向量数据库"]
+        ETCD["etcd<br/>元数据"]
+    end
 
-**mildoc_admin（文献管理系统）**
+    subgraph External["外部服务"]
+        LLM["DashScope LLM<br/>通义千问"]
+    end
 
-- 创建/删除文献目录分类
-- 上传/删除文献文档
-- 查看文献元信息（文件名、MD5、创建时间）
-- 查看文献解析状态和切片信息
+    WU -->|"① 发送 PDF 文件"| WXKF
+    WXKF -->|"② 下载并上传"| MINIO
+    MINIO -->|"③ Bucket Notification"| IDX
+    IDX -->|"④ 解析 + 向量化"| MILVUS
 
-**mildoc_index（文献索引服务）**
+    WU -->|"⑤ 发送问题"| WXKF
+    WXKF -->|"⑥ Retrieve + Rerank"| MILVUS
+    WXKF -->|"⑦ 生成回答"| LLM
+    LLM -->|"⑧ 返回答案"| WU
 
-- 监听 MinIO 指定桶的文献上传事件
-- 调用文档解析器自动解析文献内容并分片
-- 生成文献向量并存储到 Milvus
-- 处理文献删除时的向量清理
-
-**mildoc_wxkf（微信问答接口）**
-
-- 接收微信客服转发的问题
-- 使用 LangChain 从文献知识库中智能检索相关内容
-- 调用 LLM 基于文献内容生成回答
-- 返回答案给微信客服系统
-- 支持直接在微信聊天中发送 PDF/Word 等文件，自动上传到知识库并触发索引
-
-### 4. 技术实现
-
-**文档解析器**
-
-- PDF解析器：处理 PDF 文档
-- Office解析器：处理 Word、Excel、PowerPoint 文档
-- MinerU解析器：高精度文档解析
-- Markdown解析器：处理 Markdown 文档
-- Text解析器：处理纯文本文档
-
-**Embedding**
-
-- 将文本分片转换为向量表示
-- 支持多种向量模型
-
-**LangChain**
-
-- Retrieve：基于向量相似度的文档检索
-- Rerank：对检索结果进行重新排序优化
-
-**LLM服务**
-
-- 基于检索到的文献上下文生成智能解答
-- 支持多种大语言模型
-
-### 5. 技术特点
-
-**事件驱动架构**
-
-- 基于 MinIO 对象事件的自动化文献处理
-- 实时响应文献的上传和删除操作
-- 确保存储和向量数据的一致性
-
-**多格式文献支持**
-
-- 支持 PDF、Word、Excel、PowerPoint、Markdown、Text 等格式
-- 内置多种专业解析器，包括高精度的 MinerU 解析器
-- 统一的文本分片和向量化处理流程
-
-**智能检索问答**
-
-- 基于向量相似度的语义搜索
-- LangChain 框架实现 Retrieve + Rerank 优化
-- LLM 驱动的上下文感知智能解答
-
-### 6. 数据流转说明
-
-- **文献上传流程**：上传文献 → MinIO 存储 → 触发事件 → 文献解析 → 向量生成 → 存储到 Milvus
-- **智能问答流程**：微信提问 → 文献知识库检索 → 匹配相关段落 → LLM 分析 → 返回回答
-- **文献管理流程**：管理后台操作 → 查看文献元信息 → 展示解析状态和切片信息
-- **数据同步流程**：删除文献 → MinIO 清理 → 事件触发 → Milvus 向量清理
-
-### 7. 项目目录结构
-
-```
-mildoc_202601/
-├── mildoc_milvus/             # Milvus 部署配置（3种模式）
-│   ├── milvus_local/          # 全本地部署：Milvus + etcd + MinIO
-│   ├── milvus_minio/          # 混合部署：本地 Milvus + 外部 MinIO
-│   └── milvus_oss/            # 云存储部署：本地 Milvus + 阿里云 OSS
-├── mildoc_index/              # 文档索引服务
-├── mildoc_admin/              # 文档管理后台
-├── mildoc_wxkf/               # 微信客服接口
-├── frp_0.61.1_windows_amd64/  # frp 内网穿透工具
-├── pyproject.toml             # Python 项目配置
-└── requirements-all.txt       # 全部依赖列表
+    AU -->|"管理文献"| ADM
+    ADM -->|"上传/删除"| MINIO
+    ADM -->|"查看向量"| MILVUS
 ```
 
-### 8. 部署架构说明
+## 技术栈
 
-本项目支持两种部署架构，可根据服务器配置灵活选择：
-
-**架构 A：全云服务器部署（服务器配置 ≥ 4核8G）**
-
-所有 Docker 基础设施（Milvus、etcd、MinIO）和 Python 应用服务（mildoc_index、mildoc_admin、mildoc_wxkf）均运行在同一台云服务器上。适合服务器资源充足的场景。
-
-**架构 B：云服务器 + 本地 + frp 穿透（服务器配置 2核2G 等低配场景）**
-
-云服务器仅运行 Docker 基础设施（Milvus + etcd + MinIO），3 个 Python 应用服务运行在本地开发机上，通过 frp 内网穿透将本地端口映射到云服务器公网，供企业微信回调等外部访问。
-
-各服务端口说明：
-
-| 服务 | 端口 |
+| 层面 | 技术 |
 |------|------|
-| MinIO API | 9000 |
-| MinIO 管理后台 | 9001 |
-| Milvus API | 19530 |
-| Milvus 管理后台 | 9091 |
-| mildoc_admin | 8870 |
-| mildoc_wxkf | 8890 |
-| frp 服务端 | 7000 |
+| 应用框架 | Python 3.12, Flask, uv |
+| RAG 框架 | LangChain (Retrieve + Rerank) |
+| 向量数据库 | Milvus 2.6.7 |
+| 对象存储 | MinIO |
+| 文献解析 | MinerU, pdfplumber, python-docx, openpyxl |
+| Embedding | DashScope text-embedding-v4 |
+| LLM | DashScope qwen-plus |
+| 可观测性 | Langfuse（可选） |
+| 容器化 | Docker Compose (Milvus + etcd + MinIO) |
+| 内网穿透 | frp |
+| 微信集成 | 企业微信客服 API |
 
-## 第二步：环境准备
+## 使用流程
+
+```
+上传文献                    微信提问                    得到回答
+   │                          │                          │
+   ▼                          ▼                          ▼
+┌──────┐   自动解析    ┌──────────┐   RAG 检索    ┌──────────┐
+│ PDF/ │──────────────▶│ 知识库   │◀──────────────│ 微信     │
+│ Word │   自动向量化  │ (Milvus) │   LLM 生成    │ 客服     │
+└──────┘              └──────────┘              └──────────┘
+  3种方式上传：                                   回答基于你的
+  管理后台 / 共享页面 / 微信直接发文件               全部文献内容
+```
+
+## 部署指南
+
+详细的部署步骤请参考 [部署文档](#部署文档)，支持两种部署架构：
+
+- **架构 A**：全云服务器部署（≥ 4核8G）
+- **架构 B**：云服务器 + 本地 + frp 穿透（2核2G 可用）
+
+### 快速开始
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/FSSLI/PaperPilot.git
+cd PaperPilot
+
+# 2. 配置环境变量
+cp mildoc_index/.env.example mildoc_index/.env
+cp mildoc_admin/.env.example mildoc_admin/.env
+cp mildoc_wxkf/.env.example mildoc_wxkf/.env
+# 编辑各 .env 文件，填入你的 API Key 和配置
+
+# 3. 启动基础设施（Docker）
+cd mildoc_milvus/milvus_local/
+docker compose up -d
+
+# 4. 启动应用服务
+cd ../../mildoc_index && uv sync && uv run main.py --provider minio --mode listen
+cd ../mildoc_admin && uv sync && uv run admin_app.py
+cd ../mildoc_wxkf && uv sync && uv run wxkf_callback_app.py
+```
+
+---
+
+# 部署文档
+
+以下是完整的分步部署教程，包含截图和详细说明。
+
+## 第一步：环境准备
 
 ### 1. 安装 Python 3.12 和 uv 包管理器
 
@@ -156,7 +144,7 @@ pip install uv
 
 > **注意**：Windows Defender 可能误删 frpc.exe，需在"病毒和威胁防护 → 排除项"中添加排除文件夹。
 
-## 第三步：Milvus 向量数据库部署
+## 第二步：Milvus 向量数据库部署
 
 ### 1. 克隆项目代码
 
@@ -371,7 +359,7 @@ remote_port = 8890
 - frpc 需要在本地 Python 服务启动后再运行，否则穿透的端口无服务响应。
 - 企业微信回调 URL 使用穿透后的公网地址：`http://<云服务器公网IP>:8890/callback/command`
 
-## 第四步：获取千问云 API Key（原百炼平台）
+## 第三步：获取千问云 API Key（原百炼平台）
 
 ### 1. 手机号登录/注册千问云
 
@@ -395,7 +383,7 @@ https://platform.qianwenai.com/home/api-keys
 
 保存好你的 API Key，后续项目中会用到。
 
-## 第五步：运行文档索引服务 mildoc_index
+## 第四步：运行文献索引服务 mildoc_index
 
 ### 1. 进入项目目录
 
@@ -427,7 +415,7 @@ nohup uv run main.py --provider minio --mode listen >> mildoc_index.log 2>&1 &
 tail -f mildoc_index.log
 ```
 
-## 第六步：注册企业微信
+## 第五步：注册企业微信
 
 ### 1. 注册企业微信
 
@@ -445,7 +433,7 @@ tail -f mildoc_index.log
 
 ![screenshot](images/screenshot_13.png)
 
-## 第七步：运行文档管理后台 mildoc_admin
+## 第六步：运行文献管理后台 mildoc_admin
 
 ### 1. 进入项目目录
 
@@ -496,7 +484,7 @@ ADMIN_PASSWORD=admin123
 SHARE_UPLOAD_PASSPHRASE=<自定义口令>
 ```
 
-## 第八步：运行微信客服服务接口 mildoc_wxkf
+## 第七步：运行微信问答接口 mildoc_wxkf
 
 ### 1. 在企业微信中创建自建应用
 
@@ -633,3 +621,27 @@ LANGFUSE_SECRET_KEY=<你的 secret key>
 LANGFUSE_PUBLIC_KEY=<你的 public key>
 LANGFUSE_BASE_URL=<你的 Langfuse 服务地址>
 ```
+
+---
+
+## 项目结构
+
+```
+mildoc_202601/
+├── mildoc_milvus/             # Milvus 部署配置（3种模式）
+│   ├── milvus_local/          # 全本地部署：Milvus + etcd + MinIO
+│   ├── milvus_minio/          # 混合部署：本地 Milvus + 外部 MinIO
+│   └── milvus_oss/            # 云存储部署：本地 Milvus + 阿里云 OSS
+├── mildoc_index/              # 文献索引服务
+├── mildoc_admin/              # 文献管理后台
+├── mildoc_wxkf/               # 微信问答接口
+├── images/                    # 文档截图
+├── pyproject.toml             # Python 项目配置
+├── requirements-all.txt       # 全部依赖列表
+├── ROADMAP.md                 # 项目路线图
+└── README.md                  # 本文档
+```
+
+## License
+
+MIT License
