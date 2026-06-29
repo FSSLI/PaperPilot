@@ -213,6 +213,13 @@ class MinioEventHandler:
             
             logger.info(f"    解析成功，获得 {len(parse_result['contents'])} 个文本片段")
             
+            # MD5去重检查：如果内容已存在且非强制更新，跳过处理
+            doc_md5 = parse_result.get('doc_md5', '')
+            if doc_md5 and not force_update:
+                if self.milvus_api.check_document_exists_by_md5(doc_md5):
+                    logger.info(f"    文档内容已存在（MD5匹配），跳过处理以节省embedding调用")
+                    return True
+            
             # 如果是强制更新，先删除已存在的记录
             if force_update:
                 self.milvus_api.delete_existing_document(doc_path_name)

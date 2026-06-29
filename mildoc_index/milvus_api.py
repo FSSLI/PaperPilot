@@ -238,6 +238,36 @@ class MilvusAPI:
             logger.error(f"检查文档是否存在失败: {e}")
             raise e
     
+    def check_document_exists_by_md5(self, doc_md5: str) -> bool:
+        """
+        检查文档是否已存在（基于MD5哈希）
+        
+        Args:
+            doc_md5 (str): 文档MD5哈希值
+            
+        Returns:
+            bool: 是否存在相同MD5的文档
+        """
+        try:
+            # 先确保集合已加载
+            self._load_collection()
+            
+            # 根据MD5查询
+            filter_expr = f'doc_md5 == "{doc_md5}"'
+            
+            results = self.client.query(
+                collection_name=self.collection_name,
+                filter=filter_expr,
+                output_fields=[MilvusDocumentField.ID.value, MilvusDocumentField.DOC_PATH_NAME.value],
+                limit=1
+            )
+            
+            return len(results) > 0
+            
+        except Exception as e:
+            logger.error(f"检查文档MD5是否存在失败: {e}")
+            raise e
+    
     def delete_existing_document(self, doc_path_name: str) -> bool:
         """
         删除已存在的文档记录
