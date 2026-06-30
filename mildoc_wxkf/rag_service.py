@@ -199,7 +199,8 @@ class RAGService:
                 openai_api_key=Config.LLM_API_KEY,
                 openai_api_base=Config.LLM_BASE_URL,
                 temperature=0.1,
-                max_tokens=800  # 调整为800，平衡详细度和简洁性
+                max_tokens=800,  # 调整为800，平衡详细度和简洁性
+                request_timeout=60,  # LLM 调用超时 60 秒，防止无限等待
             )
             
             logger.info(f"大语言模型初始化成功: {Config.LLM_MODEL_NAME}")
@@ -374,18 +375,30 @@ class RAGService:
             # scene_info = self.detect_user_scene(query)
             scene_info = None # 暂时不使用场景检测
             
-            # 第一步：向量检索获取候选文档
+            # 第一步：向量检索获取候选文档（带重试）
             initial_k = 25 if use_rerank and self.rerank_service else 3
-            retriever = self.vector_store.as_retriever(
-                search_type="similarity",
-                search_kwargs={"k": initial_k}
-            )
-            vector_docs = retriever.invoke(query)
+            vector_docs = []
+            for attempt in range(2):  # 最多重试 2 次
+                try:
+                    retriever = self.vector_store.as_retriever(
+                        search_type="similarity",
+                        search_kwargs={"k": initial_k}
+                    )
+                    vector_docs = retriever.invoke(query)
+                    break
+                except Exception as e:
+                    logger.warning(f"向量检索第 {attempt+1} 次失败: {e}")
+                    if attempt == 1:
+                        raise  # 第二次还失败就抛异常
             logger.info(f"📄 向量检索到 {len(vector_docs)} 个候选文档")
 
-            # 第一步（并列）：BM25 关键词检索
-            bm25_docs = self._bm25_search(query, top_k=25)
-            logger.info(f"📄 BM25 检索到 {len(bm25_docs)} 个候选文档")
+            # 第一步（并列）：BM25 关键词检索（BM25 异常时静默降级到纯向量）
+            try:
+                bm25_docs = self._bm25_search(query, top_k=25)
+                logger.info(f"📄 BM25 检索到 {len(bm25_docs)} 个候选文档")
+            except Exception as e:
+                logger.warning(f"BM25 检索失败，降级到纯向量检索: {e}")
+                bm25_docs = []
 
             # 合并去重：以 page_content 为 key，向量分 + BM25 分相加
             score_map = {}
@@ -409,6 +422,15 @@ class RAGService:
             sorted_items = sorted(score_map.values(), key=lambda x: x['combined_score'], reverse=True)
             candidate_docs = [item['doc'] for item in sorted_items[:25]]
             logger.info(f"📄 双路召回合并后共 {len(candidate_docs)} 个候选文档")
+
+            # 空检索兜底：没有找到相关文档时直接返回
+            if not candidate_docs:
+                logger.warning("未检索到任何相关文档，返回友好提示")
+                return RAGResponse(
+                    content="抱歉，知识库中未找到与您问题相关的内容。建议您：1）尝试换一种表述方式提问；2）联系管理员确认相关文献是否已入库；3）转接人工客服获取帮助。",
+                    source_documents=[],
+                    success=True,
+                )
 
             # 第二步：重排序（如果启用）
             final_docs = candidate_docs
@@ -530,22 +552,39 @@ class RAGService:
                 total_tokens=cb.total_tokens
             )
             
+            # 兜底：LLM 返回空内容时返回友好提示
+            if not answer or not answer.strip():
+                logger.warning("LLM 返回空内容，返回友好提示")
+                return RAGResponse(
+                    content="抱歉，服务在生成回答时遇到问题，请稍后重试。如问题持续存在请联系管理员。",
+                    source_documents=processed_source_docs,
+                    token_usage=token_usage,
+                    success=True,
+                )
+
             return RAGResponse(
-                content=answer if answer else "抱歉，我无法根据现有信息回答您的问题。",
+                content=answer,
                 source_documents=processed_source_docs,
                 token_usage=token_usage,
                 success=True,
                 scene_info=scene_info
             )
-            
+
+        except TimeoutError:
+            logger.error("LLM 调用超时（60秒）")
+            return RAGResponse(
+                content="抱歉，AI 服务响应超时，请稍后重试。",
+                source_documents=[],
+                success=False,
+                error_message="服务响应超时",
+            )
         except Exception as e:
             logger.error(f"❌ 查询服务失败: {e}")
             return RAGResponse(
-                content="",
+                content="抱歉，服务在处理您的问题时发生异常，请稍后重试。如问题持续存在请联系管理员。",
                 source_documents=[],
                 success=False,
-                error_message=f"查询过程中发生错误：{str(e)}",
-                scene_info=None
+                error_message=str(e),
             )
     
     def get_similar_documents(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
